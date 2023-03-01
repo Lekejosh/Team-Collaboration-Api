@@ -19,9 +19,11 @@ app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const user = require('./routes/userRoute')
+const chat = require('./routes/chatRoute')
 
 //Route
 app.use("/api/v1/user", user)
+app.use('/api/v1/chat', chat)
 
 const sessionConfig = {
   secret: "egeGBTCTEcgwrtgc54cg66666666h.b/3/3.b/[g[er2",
