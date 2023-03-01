@@ -112,8 +112,68 @@ exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
     .populate("users", "-password")
     .populate("groupAdmin", "-password");
 
-    if(!updateChat){
-      return next(new ErrorHandler("Chat Not Found"));
-    }
-    res.status(200).json(updateChat)
+  if (!updateChat) {
+    return next(new ErrorHandler("Chat Not Found"));
+  }
+  res.status(200).json(updateChat);
+});
+
+exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
+  const { chatId } = req.body;
+  const users = JSON.parse(req.body.users);
+
+  const chat = await Chat.findById(chatId);
+  if (!chat) {
+    return next(new ErrorHandler("Chat Not Found"));
+  }
+
+  // Check if user already exists in the group
+  const existingUser = chat.users.find(
+    (userId) => userId.toString() === users.toString()
+  );
+  if (existingUser) {
+    return next(new ErrorHandler("User Already in group", 400));
+  }
+
+  const added = await Chat.findByIdAndUpdate(
+    chatId,
+    {
+      $push: { users: users },
+    },
+    { new: true }
+  )
+    .populate("users", "-password")
+    .populate("groupAdmin", "-password");
+
+  res.status(200).json(added);
+});
+
+
+exports.removeFromGroup = catchAsyncErrors(async (req, res, next) => {
+  const { chatId, userId } = req.body;
+
+  const chat = await Chat.findById(chatId);
+  if (!chat) {
+    return next(new ErrorHandler("Chat Not Found"));
+  }
+
+  // Check if user is not in the group
+  const existingUser = chat.users.find(
+    (user) => user.toString() === userId.toString()
+  );
+  if (!existingUser) {
+    return next(new ErrorHandler("User is not in the group", 400));
+  }
+
+  const removed = await Chat.findByIdAndUpdate(
+    chatId,
+    {
+      $pull: { users: userId },
+    },
+    { new: true }
+  )
+    .populate("users", "-password")
+    .populate("groupAdmin", "-password");
+
+  res.status(200).json(removed);
 });
