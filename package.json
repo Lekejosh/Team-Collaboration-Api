@@ -29,6 +29,7 @@
     "nodemailer": "^6.8.0",
     "nodemon": "^2.0.20",
     "otp-generator": "^4.0.0",
+    "qrcode": "^1.5.1",
     "socket.io": "^4.6.1",
     "validator": "^13.7.0"
   }
