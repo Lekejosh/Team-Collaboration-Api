@@ -62,7 +62,7 @@ exports.register = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.login = catchAsyncErrors(async (req, res, next) => {
-  const { emailName, password } = req.body;
+  const { emailName, password, twoFactorPin } = req.body;
 
   if (!emailName || !password) {
     return next(
@@ -72,6 +72,7 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
       )
     );
   }
+
   const user = await User.findOne({
     $or: [
       {
@@ -81,17 +82,43 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
         username: emailName,
       },
     ],
-  }).select("+password");
+  }).select("+password +twoFactorAuth.set +twoFactorAuth.pin");
 
   if (!user) {
     return next(new ErrorHandler("Invalid Username/Email", 401));
   }
+
   const isPasswordMatched = await user.comparePassword(password);
   if (!isPasswordMatched) {
     return next(new ErrorHandler("Invalid password", 401));
   }
+
+  if (user.twoFactorAuth.set) {
+    if (!twoFactorPin) {
+      return next(new ErrorHandler("Please Enter 2FA PIN", 400));
+    }
+
+    if (twoFactorPin !== user.twoFactorAuth.pin) {
+      return next(new ErrorHandler("Invalid 2FA PIN", 401));
+    }
+  }
+
   user.getJWTToken();
   sendToken(user, 200, res);
+});
+
+exports.twoFactorAuth = catchAsyncErrors(async (req, res, next) => {
+  const { activate, pin } = req.body;
+
+  const user = await User.findById(req.user._id);
+
+  if (activate == true) {
+    (user.twoFactorAuth.set = true), (user.twoFactorAuth.pin = pin);
+    await user.save();
+    return res.status(200).json({ success: true });
+  }
+
+  return next(new ErrorHandler("You have to activate before Proceeding", 400));
 });
 
 exports.uploadAvatar = catchAsyncErrors(async (req, res, next) => {

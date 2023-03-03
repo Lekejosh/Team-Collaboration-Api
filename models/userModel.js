@@ -37,7 +37,13 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
+      select: false,
     },
+    twoFactorAuth: {
+      set: { type: Boolean, default: false },
+      pin: { type: String, maxlength: [4, "Max Length Can't pass 4"] },
+    },
+
     avatar: {
       public_id: {
         type: String,
