@@ -5,8 +5,8 @@
 * Change Password
 * Reset Password
 * Email Verification
-* Upload Avatar
-* Update Avatar
+* Upload Avatar ✔
+* Update Avatar ✔
 * Delete Message from self and everyone
 * File Sharing ✔
 * Video and Audio call
