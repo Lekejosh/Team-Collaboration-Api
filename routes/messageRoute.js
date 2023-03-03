@@ -5,13 +5,18 @@ const {
   sendMessage,
   allMessages,
   sendAudioMessage,
-} = require("../controllers/messageController.js");
-const upload = require("../utils/audioMulter.js");
+  sendVideoMessage,
+} = require("../controllers/messageController");
+const upload = require("../utils/audioMulter");
+const uploadVideo = require("../utils/videoMullter");
 
 router.route("/").post(isAuthenticatedUser, sendMessage);
 router
   .route("/send/audio")
   .post(upload.single("audio"), isAuthenticatedUser, sendAudioMessage);
+router
+  .route("/send/video")
+  .post(uploadVideo.single("video"), isAuthenticatedUser, sendVideoMessage);
 router.route("/:chatId").get(isAuthenticatedUser, allMessages);
 
 module.exports = router;

@@ -5,10 +5,9 @@ module.exports = multer({
   storage: multer.diskStorage({}),
   fileFilter: (req, file, cb) => {
     let ext = path.extname(file.originalname);
-    if (ext !== ".mp3" && ext !== ".wav" && ext !== ".ogg"&& ext !== ".mpa") {
-      cb(new Error("Only audio files are allowed"));
+    if (ext !== ".mp4" && ext !== ".mov" && ext !== ".avi") {
+      cb(new Error("Only video files are allowed"));
     }
     cb(null, true);
   },
 });
-
