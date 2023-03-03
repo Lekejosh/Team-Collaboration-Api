@@ -1,6 +1,6 @@
 const User = require("../models/userModel");
-const QRCode = require("../models/qrModel")
-const ConnectedDevice = require("../models/connectedDevicesModel")
+const QRCode = require("../models/qrModel");
+const ConnectedDevice = require("../models/connectedDevicesModel");
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const sendToken = require("../utils/jwtToken");
@@ -8,21 +8,58 @@ const jwt = require("jsonwebtoken");
 const qrcode = require("qrcode");
 
 exports.register = catchAsyncErrors(async (req, res, next) => {
-  const { name, email, password, avatar } = req.body;
+  const {
+    firstName,
+    lastName,
+    username,
+    email,
+    mobileNumber,
+    password,
+    avatar,
+  } = req.body;
 
-  if (!name || !email || !password) {
-    return next(new ErrorHandler("Provide all fields", 400));
+  if (
+    !firstName ||
+    !lastName ||
+    !username ||
+    !mobileNumber ||
+    !email ||
+    !password
+  ) {
+    return next(new ErrorHandler(`Please provide all required fields.`, 400));
   }
 
-  const userExists = await User.findOne({ email: email });
+  const checkExistingUser = async (key, value) => {
+    const existingUser = await User.findOne({ [key]: value });
+    if (existingUser) {
+      return `${key} ${value} is already taken.`;
+    }
+  };
 
-  if (userExists) {
-    return next(new ErrorHandler("User already exists", 400));
+  const errors = await Promise.all([
+    checkExistingUser("email", email),
+    checkExistingUser("username", username),
+    checkExistingUser("mobileNumber", mobileNumber),
+  ]);
+
+  const error = errors.find((e) => e);
+  if (error) {
+    return next(new ErrorHandler(error, 400));
   }
-  const user = await User.create({ name, email, password, avatar });
+
+  const user = await User.create({
+    firstName,
+    lastName,
+    username,
+    email,
+    password,
+    mobileNumber,
+    avatar,
+  });
 
   sendToken(user, 201, res);
 });
+
 
 exports.login = catchAsyncErrors(async (req, res, next) => {
   const { emailName, password } = req.body;
@@ -41,9 +78,9 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
         email: emailName,
       },
       {
-        name: emailName,
+        username: emailName,
       },
-    ],
+    ],  
   }).select("+password");
 
   if (!user) {
@@ -65,9 +102,9 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
   sendToken(user, 200, res);
 });
 
-exports.generateQr = catchAsyncErrors(async (req,res,next) => {
+exports.generateQr = catchAsyncErrors(async (req, res, next) => {
   try {
-    const userId  = req.user._id
+    const userId = req.user._id;
 
     // Validate user input
     if (!userId) {
@@ -78,7 +115,7 @@ exports.generateQr = catchAsyncErrors(async (req,res,next) => {
 
     // Validate is user exist
     if (!user) {
-      return next(new ErrorHandler("User not found",400))
+      return next(new ErrorHandler("User not found", 400));
     }
 
     const qrExist = await QRCode.findOne({ userId });
@@ -99,68 +136,68 @@ exports.generateQr = catchAsyncErrors(async (req,res,next) => {
   } catch (err) {
     console.log(err);
   }
-})
+});
 
-exports.scanQr = catchAsyncErrors(async (req,res,next)=>{
-   try {
-     const { token, deviceInformation } = req.body;
+exports.scanQr = catchAsyncErrors(async (req, res, next) => {
+  try {
+    const { token, deviceInformation } = req.body;
 
-     if (!token && !deviceInformation) {
-       res.status(400).send("Token and deviceInformation is required");
-     }
+    if (!token && !deviceInformation) {
+      res.status(400).send("Token and deviceInformation is required");
+    }
 
-     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-     const qrCode = await QRCode.findOne({
-       userId: decoded.userId,
-       disabled: false,
-     });
+    const qrCode = await QRCode.findOne({
+      userId: decoded.userId,
+      disabled: false,
+    });
 
-     if (!qrCode) {
-       res.status(400).send("QR Code not found");
-     }
+    if (!qrCode) {
+      res.status(400).send("QR Code not found");
+    }
 
-     const connectedDeviceData = {
-       userId: decoded.userId,
-       qrCodeId: qrCode._id,
-       deviceName: deviceInformation.deviceName,
-       deviceModel: deviceInformation.deviceModel,
-       deviceOS: deviceInformation.deviceOS,
-       deviceVersion: deviceInformation.deviceVersion,
-     };
+    const connectedDeviceData = {
+      userId: decoded.userId,
+      qrCodeId: qrCode._id,
+      deviceName: deviceInformation.deviceName,
+      deviceModel: deviceInformation.deviceModel,
+      deviceOS: deviceInformation.deviceOS,
+      deviceVersion: deviceInformation.deviceVersion,
+    };
 
-     const connectedDevice = await ConnectedDevice.create(connectedDeviceData);
+    const connectedDevice = await ConnectedDevice.create(connectedDeviceData);
 
-     // Update qr code
-     await QRCode.findOneAndUpdate(
-       { _id: qrCode._id },
-       {
-         isActive: true,
-         connectedDeviceId: connectedDevice._id,
-         lastUsedDate: new Date(),
-       }
-     );
+    // Update qr code
+    await QRCode.findOneAndUpdate(
+      { _id: qrCode._id },
+      {
+        isActive: true,
+        connectedDeviceId: connectedDevice._id,
+        lastUsedDate: new Date(),
+      }
+    );
 
-     // Find user
-     const user = await User.findById(decoded.userId);
+    // Find user
+    const user = await User.findById(decoded.userId);
 
-     // Create token
-     const authToken = jwt.sign({ user_id: user._id }, process.env.TOKEN_KEY, {
-       expiresIn: "2h",
-     });
+    // Create token
+    const authToken = jwt.sign({ user_id: user._id }, process.env.TOKEN_KEY, {
+      expiresIn: "2h",
+    });
 
-     // Return token
-     return res.status(200).json({ token: authToken });
-   } catch (err) {
-     console.log(err);
-   }
-})
+    // Return token
+    return res.status(200).json({ token: authToken });
+  } catch (err) {
+    console.log(err);
+  }
+});
 
 exports.allUsers = catchAsyncErrors(async (req, res, next) => {
   const keyword = req.query.search
     ? {
         $or: [
-          { name: { $regex: req.query.search, $options: "i" } },
+          { username: { $regex: req.query.search, $options: "i" } },
           { email: { $regex: req.query.search, $options: "i" } },
         ],
       }
@@ -169,4 +206,3 @@ exports.allUsers = catchAsyncErrors(async (req, res, next) => {
   const users = await User.find(keyword).find({ _id: { $ne: req.user._id } });
   res.status(200).json({ success: true, users });
 });
-

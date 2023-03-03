@@ -6,9 +6,18 @@ const crypto = require("crypto");
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
+    firstName: {
       type: String,
       required: true,
+    },
+    lastName: {
+      type: String,
+      required: true,
+    },
+    username: {
+      type: String,
+      required: true,
+      unique: true,
     },
     email: {
       type: String,
@@ -21,14 +30,24 @@ const userSchema = new mongoose.Schema(
       required: true,
       default: false,
     },
+    mobileNumber: {
+      type: String,
+      unique: true,
+    },
     password: {
       type: String,
       required: true,
     },
     avatar: {
-      type: "String",
-      default:
-        "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
+      public_id: {
+        type: String,
+        default: "default_image",
+      },
+      url: {
+        type: String,
+        default:
+          "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
+      },
     },
     isAdmin: {
       type: Boolean,
@@ -43,6 +62,13 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+userSchema.pre("save", function (next) {
+  this.username = this.username.replace(/[^a-zA-Z0-9_.]/g, "");
+  this.email = this.email.replace(/[^a-zA-Z0-9@.]/g, "");
+
+  next();
+});
+
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
     next();
