@@ -6,6 +6,30 @@ const messageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    audio: {
+      public_id: {
+        type: String,
+      },
+      url: { type: String },
+    },
+    image: {
+      public_id: {
+        type: String,
+      },
+      url: { type: String },
+    },
+    video: {
+      public_id: {
+        type: String,
+      },
+      url: { type: String },
+    },
+    document: {
+      public_id: {
+        type: String,
+      },
+      url: { type: String },
+    },
     content: {
       type: String,
       trim: true,

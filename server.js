@@ -1,6 +1,7 @@
 const app = require("./app");
 const mongoose = require("mongoose");
 const colors = require("colors");
+const cloudinary = require("cloudinary");
 require("dotenv").config();
 
 process.on("uncaughtException", (err) => {
@@ -60,6 +61,13 @@ io.on("connection", (socket) => {
     socket.leaveAll();
   });
 });
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_NAME,
+  api_key: process.env.CLOUDINARY_APIKEY,
+  api_secret: process.env.CLOUDINARY_SECRET,
+});
+
 process.on("unhandledRejection", (err) => {
   console.log(`Error: ${err}: ${err.message}`.red.bold);
   console.log(

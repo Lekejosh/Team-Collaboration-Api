@@ -4,6 +4,7 @@ const Message = require("../models/messageModel");
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const sendToken = require("../utils/jwtToken");
+const cloudinary = require("cloudinary");
 
 exports.sendMessage = catchAsyncErrors(async (req, res, next) => {
   const { content, chatId } = req.body;
@@ -16,6 +17,36 @@ exports.sendMessage = catchAsyncErrors(async (req, res, next) => {
 
   try {
     var message = await Message.create(newMessage);
+    message = await message.populate("sender", "name avatar");
+    message = await message.populate("chat");
+    message = await User.populate(message, {
+      path: "chat.users",
+      select: "name avatar email",
+    });
+
+    await Chat.findByIdAndUpdate(req.body.chatId, {
+      latestMessage: message,
+    });
+    res.status(200).json(message);
+  } catch (error) {
+    return next(new ErrorHandler("Invalid Chat Id", 400));
+  }
+});
+
+exports.sendAudioMessage = catchAsyncErrors(async (req, res, next) => {
+  const myCloud = await cloudinary.v2.uploader.upload(req.file.path, {
+    folder: "Chat_app_audio",
+    resource_type: "video",
+  });
+  const {  chatId } = req.body;
+
+  var newAudioMessage = {
+    sender: req.user._id,
+    audio: { public_id: myCloud.public_id, url: myCloud.secure_url },
+    chat: chatId,
+  };
+  try {
+    var message = await Message.create(newAudioMessage);
     message = await message.populate("sender", "name avatar");
     message = await message.populate("chat");
     message = await User.populate(message, {
