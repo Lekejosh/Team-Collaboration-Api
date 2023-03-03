@@ -6,6 +6,7 @@ const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const sendToken = require("../utils/jwtToken");
 const jwt = require("jsonwebtoken");
 const qrcode = require("qrcode");
+const cloudinary = require("cloudinary");
 
 exports.register = catchAsyncErrors(async (req, res, next) => {
   const {
@@ -60,7 +61,6 @@ exports.register = catchAsyncErrors(async (req, res, next) => {
   sendToken(user, 201, res);
 });
 
-
 exports.login = catchAsyncErrors(async (req, res, next) => {
   const { emailName, password } = req.body;
 
@@ -80,7 +80,7 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
       {
         username: emailName,
       },
-    ],  
+    ],
   }).select("+password");
 
   if (!user) {
@@ -90,16 +90,36 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
   if (!isPasswordMatched) {
     return next(new ErrorHandler("Invalid password", 401));
   }
-  //   if (!user.isVerified) {
-  //     return next(
-  //       new ErrorHandler("Unverified Email Address🤨, Please Verify", 403)
-  //     );
-  //   }
-  //   user.lastLoggedIn = Date.now();
-  //   await user.save();
-
   user.getJWTToken();
   sendToken(user, 200, res);
+});
+
+exports.uploadAvatar = catchAsyncErrors(async (req, res, next) => {
+  const user = await User.findById(req.user.id);
+
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+  if (user.avatar.public_id !== "default_image") {
+    await cloudinary.v2.uploader.destroy(user.avatar.public_id);
+  }
+
+  const result = await cloudinary.v2.uploader.upload(req.file.path, {
+    folder: "Chat_app_avatar",
+    width: 150,
+    crop: "scale",
+  });
+
+  user.avatar = {
+    public_id: result.public_id,
+    url: result.secure_url,
+  };
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+  });
 });
 
 exports.generateQr = catchAsyncErrors(async (req, res, next) => {
