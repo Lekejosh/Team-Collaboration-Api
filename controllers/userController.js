@@ -222,17 +222,23 @@ exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
 
   const user = await User.findById(req.user._id);
 
-  const usernameTaken = await User.findOne({ username: username });
+  if (username) {
+    const usernameTaken = await User.findOne({
+      username: username,
+      _id: { $ne: user._id },
+    });
 
-  if (usernameTaken) {
-    return next(new ErrorHandler("Username already taken", 400));
+    if (usernameTaken) {
+      return next(new ErrorHandler("Username already taken", 400));
+    }
+    user.username = username;
+    await user.save();
   }
 
-  user.username = username;
   user.status = status;
   await user.save();
 
-  res.status(200).json;
+  res.status(200).json({ success: true });
 });
 
 exports.updateMobileNumber = catchAsyncErrors(async (req, res, next) => {
@@ -240,7 +246,14 @@ exports.updateMobileNumber = catchAsyncErrors(async (req, res, next) => {
 
   const user = await User.findById(req.user._id);
 
-  const numberTaken = await User.findOne({ mobileNumber: mobileNumber });
+  const numberTaken = await User.findOne({
+    mobileNumber: mobileNumber,
+    _id: { $ne: user._id },
+  });
+
+  if (user.mobileNumber == mobileNumber) {
+    res.status(304).json({ message: "No Changes Made" });
+  }
 
   if (numberTaken) {
     return next(new ErrorHandler("Mobile Number already taken", 400));
@@ -250,6 +263,8 @@ exports.updateMobileNumber = catchAsyncErrors(async (req, res, next) => {
   user.isVerifiedMobile = false;
   await user.save();
 
+  await unverifyUserIfEmailAndMobileNotVerified(req.user._id);
+
   res.status(200).json({ success: true });
 });
 
@@ -258,18 +273,27 @@ exports.updateEmail = catchAsyncErrors(async (req, res, next) => {
 
   const user = await User.findById(req.user._id);
 
-  const emailTaken = await User.findOne({ email: email });
+  const emailTaken = await User.findOne({
+    email: email,
+    _id: { $ne: user._id },
+  });
 
   if (emailTaken) {
     return next(new ErrorHandler("Email Address already taken", 400));
   }
 
+  if (user.email == email) {
+    res.status(304).json({ message: "No Changes Made" });
+  }
+
   user.email = email;
   user.isVerifiedEmail = false;
   await user.save();
-
+  await unverifyUserIfEmailAndMobileNotVerified(req.user._id);
   res.status(200).json({ success: true });
 });
+
+exports.logout = catchAsyncErrors(async (req, res, next) => {});
 
 exports.twoFactorAuth = catchAsyncErrors(async (req, res, next) => {
   const { activate, pin } = req.body;
@@ -421,3 +445,12 @@ exports.allUsers = catchAsyncErrors(async (req, res, next) => {
   const users = await User.find(keyword).find({ _id: { $ne: req.user._id } });
   res.status(200).json({ success: true, users });
 });
+
+async function unverifyUserIfEmailAndMobileNotVerified(userId) {
+  const user = await User.findById(userId);
+
+  if (user.isVerified && !user.isVerifiedEmail && !user.isVerifiedMobile) {
+    user.isVerified = false;
+    await user.save();
+  }
+}
