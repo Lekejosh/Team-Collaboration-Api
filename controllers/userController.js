@@ -9,6 +9,7 @@ const qrcode = require("qrcode");
 const cloudinary = require("cloudinary");
 const sendEmail = require("../utils/sendMail");
 const { generateOTP } = require("../utils/otpGenerator");
+const axios = require("axios");
 
 exports.register = catchAsyncErrors(async (req, res, next) => {
   const {
@@ -78,7 +79,7 @@ exports.generateMailOTP = catchAsyncErrors(async (req, res, next) => {
       subject: "Veritfy Account OTP",
       html: data,
     }).then(() => {
-      console.log("Email Sent Successfully");
+      return res.status(200).json({ success: true });
     });
   } catch (err) {
     user.emailOTP = undefined;
@@ -98,23 +99,68 @@ exports.generateMobileOTP = catchAsyncErrors(async (req, res, next) => {
     "You Mobile Number Verification Token is:- " +
     user.mobileOTP +
     " if you have not requested this email  then, please Ignore it";
-  var payload = {
-    From: config.twilio.fromPhone,
+  const payload = {
+    From: process.env.TWILIO_FROM_PHONE,
     To: "+234" + user.mobileNumber,
     Body: msg,
   };
-  var stringPayload = querystring.stringify(payload);
-  var requestDetails = {
-    protocol: "https:",
-    hostname: "api.twilio.com",
+  const options = {
+    url:
+      "https://api.twilio.com/2010-04-01/Accounts/" +
+      process.env.TWILIO_ACCOUNT_SID +
+      "/Messages.json",
     method: "POST",
-    path: "/2010-04-01/Accounts/" + config.twilio.accountSid + "/Messages.json",
-    auth: config.twilio.accountSid + ":" + config.twilio.authToken,
+    auth: {
+      username: process.env.TWILIO_ACCOUNT_SID,
+      password: process.env.TWILIO_AUTH_TOKEN,
+    },
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "Content-Length": Buffer.byteLength(stringPayload),
     },
+    data: payload,
   };
+  try {
+    const response = await axios(options);
+    const status = response.status;
+    if (status == 200 || status == 201) {
+      return res.status(200).json({ success: true });
+    } else {
+      return res.status(200).json({ success: true });
+    }
+  } catch (error) {
+    console.error(error);
+    return next(
+      new ErrorHandler("An error occurred while sending the message", 500)
+    );
+  }
+});
+
+exports.verifyMobileAndEmailOTP = catchAsyncErrors(async (req, res, next) => {
+  const { mailOtp, mobileOtp } = req.body;
+
+  if (!mailOtp || !mobileOtp) {
+    return next(new ErrorHandler("Please Fill in Required fields", 400));
+  }
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    return next(new ErrorHandler("User Not found", 404));
+  }
+  if (user.emailOTP == undefined && user.mobileOTP == undefined) {
+    return next(new ErrorHandler("Invalid Request", 401));
+  }
+  if (user.emailOTP !== mailOtp) {
+    return next(new ErrorHandler("Email OTP Not Valid", 400));
+  }
+  if (user.mobileOTP !== mobileOtp) {
+    return next(new ErrorHandler("Mobile OTP Not Valid", 400));
+  }
+  user.isVerified = true;
+  user.emailOTP = undefined;
+  user.mobileOTP = undefined;
+  await user.save();
+  res.status(200).json({ success: true });
 });
 
 exports.login = catchAsyncErrors(async (req, res, next) => {

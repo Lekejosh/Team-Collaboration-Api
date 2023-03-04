@@ -4,7 +4,7 @@
 * Deactivate Account
 * Change Password
 * Reset Password
-* Email Verification
+* Email Verification ✔
 * Upload Avatar ✔
 * Update Avatar ✔
 * Delete Message from self and everyone
@@ -13,5 +13,5 @@
 * Live Audio Closed Captioning
 * Voice Note
 * Team Collaboration
-* Email Verification code and Mobile Verification Code
+* Email Verification code and Mobile Verification Code ✔
 * ... More to add

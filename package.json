@@ -13,6 +13,7 @@
   "author": "Adeleke Joshua",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.3.4",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.1",
     "cloudinary": "^1.33.0",
