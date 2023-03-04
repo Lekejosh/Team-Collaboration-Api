@@ -34,10 +34,22 @@ const userSchema = new mongoose.Schema(
       type: String,
       unique: true,
     },
+    isVerifiedMobile: {
+      type: Boolean,
+      default: false,
+    },
+    isVerifiedEmail: {
+      type: Boolean,
+      default: false,
+    },
     password: {
       type: String,
       required: true,
       select: false,
+    },
+    status: {
+      type: String,
+      maxlength: [150, "Status can't be more than 150 Characters"],
     },
     emailOTP: {
       type: String,
@@ -60,6 +72,10 @@ const userSchema = new mongoose.Schema(
         default:
           "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
       },
+    },
+    isDeactivated: {
+      type: Boolean,
+      default: false,
     },
     isAdmin: {
       type: Boolean,

@@ -12,6 +12,9 @@ const {
   generateMailOTP,
   generateMobileOTP,
   verifyMobileAndEmailOTP,
+  updateProfile,
+  updateMobileNumber,
+  updateEmail,
 } = require("../controllers/userController");
 const upload = require("../utils/multer");
 
@@ -25,6 +28,9 @@ router.route("/generate/email/otp").get(isAuthenticatedUser, generateMailOTP);
 router
   .route("/generate/mobile/otp")
   .get(isAuthenticatedUser, generateMobileOTP);
+router.route("/update/profile").put(isAuthenticatedUser, updateProfile);
+router.route("/update/mobile").put(isAuthenticatedUser, updateMobileNumber);
+router.route("/update/email").put(isAuthenticatedUser, updateEmail)
 router.route("/verify/otp").post(isAuthenticatedUser, verifyMobileAndEmailOTP);
 router.route("/qr/generate").post(isAuthenticatedUser, generateQr);
 router.route("/qr/scan").post(scanQr);

@@ -159,6 +159,8 @@ exports.verifyMobileAndEmailOTP = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Mobile OTP Not Valid", 400));
   }
   user.isVerified = true;
+  user.isVerifiedEmail = true;
+  user.isVerifiedMobile = true;
   user.emailOTP = undefined;
   user.mobileOTP = undefined;
   await user.save();
@@ -207,8 +209,66 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
     }
   }
 
+  if (!user.isVerified) {
+    return next(new ErrorHandler("Email and Mobile Number not verified", 401));
+  }
+
   user.getJWTToken();
   sendToken(user, 200, res);
+});
+
+exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
+  const { username, status } = req.body;
+
+  const user = await User.findById(req.user._id);
+
+  const usernameTaken = await User.findOne({ username: username });
+
+  if (usernameTaken) {
+    return next(new ErrorHandler("Username already taken", 400));
+  }
+
+  user.username = username;
+  user.status = status;
+  await user.save();
+
+  res.status(200).json;
+});
+
+exports.updateMobileNumber = catchAsyncErrors(async (req, res, next) => {
+  const { mobileNumber } = req.body;
+
+  const user = await User.findById(req.user._id);
+
+  const numberTaken = await User.findOne({ mobileNumber: mobileNumber });
+
+  if (numberTaken) {
+    return next(new ErrorHandler("Mobile Number already taken", 400));
+  }
+
+  user.mobileNumber = mobileNumber;
+  user.isVerifiedMobile = false;
+  await user.save();
+
+  res.status(200).json({ success: true });
+});
+
+exports.updateEmail = catchAsyncErrors(async (req, res, next) => {
+  const { email } = req.body;
+
+  const user = await User.findById(req.user._id);
+
+  const emailTaken = await User.findOne({ email: email });
+
+  if (emailTaken) {
+    return next(new ErrorHandler("Email Address already taken", 400));
+  }
+
+  user.email = email;
+  user.isVerifiedEmail = false;
+  await user.save();
+
+  res.status(200).json({ success: true });
 });
 
 exports.twoFactorAuth = catchAsyncErrors(async (req, res, next) => {
