@@ -39,6 +39,12 @@ const userSchema = new mongoose.Schema(
       required: true,
       select: false,
     },
+    emailOTP: {
+      type: String,
+    },
+    mobileOTP: {
+      type: String,
+    },
     twoFactorAuth: {
       set: { type: Boolean, default: false },
       pin: { type: String, maxlength: [4, "Max Length Can't pass 4"] },

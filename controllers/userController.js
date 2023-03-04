@@ -7,6 +7,8 @@ const sendToken = require("../utils/jwtToken");
 const jwt = require("jsonwebtoken");
 const qrcode = require("qrcode");
 const cloudinary = require("cloudinary");
+const sendEmail = require("../utils/sendMail");
+const { generateOTP } = require("../utils/otpGenerator");
 
 exports.register = catchAsyncErrors(async (req, res, next) => {
   const {
@@ -59,6 +61,60 @@ exports.register = catchAsyncErrors(async (req, res, next) => {
   });
 
   sendToken(user, 201, res);
+});
+
+exports.generateMailOTP = catchAsyncErrors(async (req, res, next) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    return next(new ErrorHandler("User not Found", 400));
+  }
+  user.emailOTP = generateOTP();
+  await user.save();
+  try {
+    const data = `Your email Verification Token is :-\n\n ${user.emailOTP} \n\nif you have not requested this email  then, please Ignore it`;
+    await sendEmail({
+      email: `${user.firstName} <${user.email}>`,
+      subject: "Veritfy Account OTP",
+      html: data,
+    }).then(() => {
+      console.log("Email Sent Successfully");
+    });
+  } catch (err) {
+    user.emailOTP = undefined;
+    await user.save({ validateBeforeSave: false });
+    return next(new ErrorHandler(err.message, 500));
+  }
+});
+
+exports.generateMobileOTP = catchAsyncErrors(async (req, res, next) => {
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return next(new ErrorHandler("User not Found", 400));
+  }
+  user.mobileOTP = generateOTP();
+  await user.save();
+  const msg =
+    "You Mobile Number Verification Token is:- " +
+    user.mobileOTP +
+    " if you have not requested this email  then, please Ignore it";
+  var payload = {
+    From: config.twilio.fromPhone,
+    To: "+234" + user.mobileNumber,
+    Body: msg,
+  };
+  var stringPayload = querystring.stringify(payload);
+  var requestDetails = {
+    protocol: "https:",
+    hostname: "api.twilio.com",
+    method: "POST",
+    path: "/2010-04-01/Accounts/" + config.twilio.accountSid + "/Messages.json",
+    auth: config.twilio.accountSid + ":" + config.twilio.authToken,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Content-Length": Buffer.byteLength(stringPayload),
+    },
+  };
 });
 
 exports.login = catchAsyncErrors(async (req, res, next) => {
@@ -117,8 +173,12 @@ exports.twoFactorAuth = catchAsyncErrors(async (req, res, next) => {
     await user.save();
     return res.status(200).json({ success: true });
   }
-
-  return next(new ErrorHandler("You have to activate before Proceeding", 400));
+  if (activate == false) {
+    user.twoFactorAuth.set = false;
+    await user.save();
+    return res.status(200).json({ success: true });
+  }
+  return next(new ErrorHandler("Provide The parameter", 400));
 });
 
 exports.uploadAvatar = catchAsyncErrors(async (req, res, next) => {
