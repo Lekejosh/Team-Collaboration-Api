@@ -22,6 +22,7 @@ const {
   forgotPassword,
   resetPassword,
   updatePassword,
+  deactivateAccount,
 } = require("../controllers/userController");
 const upload = require("../utils/multer");
 
@@ -67,5 +68,6 @@ router
   .post(isAuthenticatedUser, checkDeactivated, generateQr);
 router.route("/qr/scan").post(scanQr);
 router.route("/").get(isAuthenticatedUser, checkDeactivated, allUsers);
+router.route("/deactivate").post(isAuthenticatedUser, deactivateAccount);
 
 module.exports = router;

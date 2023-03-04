@@ -9,7 +9,7 @@
 * File Sharing ✔
 * Voice Note ✔
 * Email Verification code and Mobile Verification Code ✔
-* Deactivate Account
+* Deactivate Account ✔
 * Team Collaboration
 * Video and Audio call 
 * Live Audio Closed Captioning

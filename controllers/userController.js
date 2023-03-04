@@ -51,7 +51,7 @@ exports.register = catchAsyncErrors(async (req, res, next) => {
 
   const error = errors.find((e) => e);
   if (error) {
-    return next(new ErrorHandler(error, 400));
+    return next(new ErrorHandler(error, 409));
   }
 
   const user = await User.create({
@@ -229,6 +229,10 @@ exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("User Not found", 404));
   }
 
+  if (user.isDeactivated) {
+    return next(new ErrorHandler("Account Deactivated, Contact Support", 403));
+  }
+
   if (user.isVerifiedEmail) {
     const resetToken = user.getResetPasswordToken();
     user.save({ ValidateBeforeSave: false });
@@ -374,7 +378,7 @@ exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
     });
 
     if (usernameTaken) {
-      return next(new ErrorHandler("Username already taken", 400));
+      return next(new ErrorHandler("Username already taken", 409));
     }
     user.username = username;
     await user.save();
@@ -401,7 +405,7 @@ exports.updateMobileNumber = catchAsyncErrors(async (req, res, next) => {
   }
 
   if (numberTaken) {
-    return next(new ErrorHandler("Mobile Number already taken", 400));
+    return next(new ErrorHandler("Mobile Number already taken", 409));
   }
 
   user.mobileNumber = mobileNumber;
@@ -424,7 +428,7 @@ exports.updateEmail = catchAsyncErrors(async (req, res, next) => {
   });
 
   if (emailTaken) {
-    return next(new ErrorHandler("Email Address already taken", 400));
+    return next(new ErrorHandler("Email Address already taken", 409));
   }
 
   if (user.email == email) {
