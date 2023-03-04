@@ -1,5 +1,6 @@
 const User = require("../models/userModel");
 const QRCode = require("../models/qrModel");
+const crypto = require("crypto");
 const ConnectedDevice = require("../models/connectedDevicesModel");
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
@@ -217,6 +218,130 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
   sendToken(user, 200, res);
 });
 
+exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
+  const { emailName } = req.body;
+
+  const user = await User.findOne({
+    $or: [{ email: emailName }, { username: emailName }],
+  });
+
+  if (!user) {
+    return next(new ErrorHandler("User Not found", 404));
+  }
+
+  if (user.isVerifiedEmail) {
+    const resetToken = user.getResetPasswordToken();
+    user.save({ ValidateBeforeSave: false });
+
+    const resetPasswordUrl = `${req.protocol}://${req.get(
+      "host"
+    )}/api/v1/user/password/reset/${resetToken}`;
+
+    const message = `Your password reset Token is :-\n\n ${resetPasswordUrl} \n\nif you have not requested this email then, please Ignore it`;
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: `User Password Recovery`,
+        html: message,
+      });
+    } catch (error) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+
+      await user.save({ validateBeforeSave: false });
+      return next(new ErrorHandler(error.message, 500));
+    }
+    return res
+      .status(200)
+      .json({ success: true, message: "Reset Link Sent, Check your Mail!" });
+  }
+
+  if (user.isVerifiedMobile) {
+    const resetToken = user.getResetPasswordToken();
+    user.save({ ValidateBeforeSave: false });
+
+    const resetPasswordUrl = `${req.protocol}://${req.get(
+      "host"
+    )}/api/v1/user/password/reset/${resetToken}`;
+
+    const msg = `Your password reset Token is :-\n\n ${resetPasswordUrl} \n\nif you have not requested this email then, please Ignore it`;
+    const payload = {
+      From: process.env.TWILIO_FROM_PHONE,
+      To: "+234" + user.mobileNumber,
+      Body: msg,
+    };
+    const options = {
+      url:
+        "https://api.twilio.com/2010-04-01/Accounts/" +
+        process.env.TWILIO_ACCOUNT_SID +
+        "/Messages.json",
+      method: "POST",
+      auth: {
+        username: process.env.TWILIO_ACCOUNT_SID,
+        password: process.env.TWILIO_AUTH_TOKEN,
+      },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      data: payload,
+    };
+    try {
+      const response = await axios(options);
+      const status = response.status;
+      if (status == 200 || status == 201) {
+        return res.status(200).json({ success: true });
+      } else {
+        return res.status(200).json({ success: true });
+      }
+    } catch (error) {
+      console.error(error);
+      return next(
+        new ErrorHandler("An error occurred while sending the message", 500)
+      );
+    }
+  }
+
+  res.status(400).json({
+    success: false,
+    message:
+      "Error Sending Password reset token to an unverified user, Contact Support",
+  });
+});
+
+exports.resetPassword = catchAsyncErrors(async (req, res, next) => {
+  const resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
+
+  const user = await User.findOne({
+    resetPasswordToken,
+    resetPasswordExpire: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return next(new ErrorHandler("Reset Password Token is invalid", 401));
+  }
+
+  if (req.body.newPassword !== req.body.confirmPassword) {
+    return next(new ErrorHandler("Password does not Match", 400));
+  }
+  const message = `Your password has been changed successfully`;
+  await sendEmail({
+    email: user.email,
+    subject: `Password Changed Successfully`,
+    html: message,
+  });
+  user.password = req.body.newPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+
+  await user.save();
+  res
+    .status(200)
+    .json({ success: true, message: "Password Changed Successfully" });
+});
+
 exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
   const { username, status } = req.body;
 
@@ -293,7 +418,22 @@ exports.updateEmail = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true });
 });
 
-exports.logout = catchAsyncErrors(async (req, res, next) => {});
+exports.logoutUser = catchAsyncErrors(async (req, res, next) => {
+  res.cookie("token", null, {
+    expires: new Date(Date.now()),
+    httpOnly: true,
+  });
+  res.status(200).json({ success: true });
+});
+
+exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
+  const profileUpdate = {
+    mobileNumber: req.body.mobileNumber,
+  };
+
+  await User.findByIdAndUpdate(req.user.id, profileUpdate);
+  res.status(200).json({ success: true });
+});
 
 exports.twoFactorAuth = catchAsyncErrors(async (req, res, next) => {
   const { activate, pin } = req.body;

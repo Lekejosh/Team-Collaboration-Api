@@ -1,15 +1,15 @@
 # TODOs
 
-* Logout route
+* Logout route ✔
 * Deactivate Account
 * Change Password
-* Reset Password
+* Reset Password ✔
 * Email Verification ✔
 * Upload Avatar ✔
 * Update Avatar ✔
 * Delete Message from self and everyone
 * File Sharing ✔
-* Video and Audio call
+* Video and Audio call 
 * Live Audio Closed Captioning
 * Voice Note ✔
 * Team Collaboration

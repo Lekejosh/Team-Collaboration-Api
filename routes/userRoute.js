@@ -15,11 +15,17 @@ const {
   updateProfile,
   updateMobileNumber,
   updateEmail,
+  logoutUser,
+  forgotPassword,
+  resetPassword,
 } = require("../controllers/userController");
 const upload = require("../utils/multer");
 
 router.route("/register").post(register);
 router.route("/login").post(login);
+router.route("/logout").post(isAuthenticatedUser, logoutUser);
+router.route("/forgot/password").post(forgotPassword);
+router.route("/password/reset/:token").post(resetPassword);
 router.route("/2fa/activate").post(isAuthenticatedUser, twoFactorAuth);
 router
   .route("/update/avatar")
@@ -30,7 +36,7 @@ router
   .get(isAuthenticatedUser, generateMobileOTP);
 router.route("/update/profile").put(isAuthenticatedUser, updateProfile);
 router.route("/update/mobile").put(isAuthenticatedUser, updateMobileNumber);
-router.route("/update/email").put(isAuthenticatedUser, updateEmail)
+router.route("/update/email").put(isAuthenticatedUser, updateEmail);
 router.route("/verify/otp").post(isAuthenticatedUser, verifyMobileAndEmailOTP);
 router.route("/qr/generate").post(isAuthenticatedUser, generateQr);
 router.route("/qr/scan").post(scanQr);
