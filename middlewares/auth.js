@@ -26,3 +26,17 @@ exports.authorizeRole = (...roles) => {
     next();
   };
 };
+
+// Middleware function to check if user is deactivated
+exports.checkDeactivated = catchAsyncErrors(async (req, res, next) => {
+  const user = req.user;
+  if (user.isDeactivated) {
+    return res
+      .status(403)
+      .json({
+        success: false,
+        message: "Your account is deactivated, Contact Support to Activate it",
+      });
+  }
+  next();
+});

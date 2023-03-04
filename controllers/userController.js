@@ -357,7 +357,9 @@ exports.updatePassword = catchAsyncErrors(async (req, res, next) => {
   user.password = req.body.newPassword;
   await user.save();
 
-  res.status(200).json({ success: true, message:"Password Updated Successfully" });
+  res
+    .status(200)
+    .json({ success: true, message: "Password Updated Successfully" });
 });
 
 exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
@@ -602,6 +604,23 @@ exports.allUsers = catchAsyncErrors(async (req, res, next) => {
 
   const users = await User.find(keyword).find({ _id: { $ne: req.user._id } });
   res.status(200).json({ success: true, users });
+});
+
+exports.deactivateAccount = catchAsyncErrors(async (req, res, next) => {
+  const { deactivate } = req.body;
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    return next(new ErrorHandler("User Not found", 404));
+  }
+
+  user.isDeactivated = deactivate;
+  await user.save();
+
+  res
+    .status(200)
+    .json({ success: true, message: "Account Deactivated Successfully" });
 });
 
 async function unverifyUserIfEmailAndMobileNotVerified(userId) {

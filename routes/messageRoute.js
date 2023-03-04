@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { isAuthenticatedUser } = require("../middlewares/auth");
+const {
+  isAuthenticatedUser,
+  checkDeactivated,
+} = require("../middlewares/auth");
 const {
   sendMessage,
   allMessages,
@@ -14,23 +17,41 @@ const uploadImage = require("../utils/Multer");
 const uploadVideo = require("../utils/videoMullter");
 const uploadDocument = require("../utils/documentMulter");
 
-router.route("/").post(isAuthenticatedUser, sendMessage);
+router.route("/").post(isAuthenticatedUser, checkDeactivated, sendMessage);
 router
   .route("/send/audio")
-  .post(upload.single("audio"), isAuthenticatedUser, sendAudioMessage);
+  .post(
+    upload.single("audio"),
+    isAuthenticatedUser,
+    checkDeactivated,
+    sendAudioMessage
+  );
 router
   .route("/send/video")
-  .post(uploadVideo.single("video"), isAuthenticatedUser, sendVideoMessage);
+  .post(
+    uploadVideo.single("video"),
+    isAuthenticatedUser,
+    checkDeactivated,
+    sendVideoMessage
+  );
 router
   .route("/send/image")
-  .post(uploadImage.single("image"), isAuthenticatedUser, sendImageMessage);
+  .post(
+    uploadImage.single("image"),
+    isAuthenticatedUser,
+    checkDeactivated,
+    sendImageMessage
+  );
 router
   .route("/send/document")
   .post(
     uploadDocument.single("document"),
     isAuthenticatedUser,
-    sendDocumentMessage 
+    checkDeactivated,
+    sendDocumentMessage
   );
-router.route("/:chatId").get(isAuthenticatedUser, allMessages);
+router
+  .route("/:chatId")
+  .get(isAuthenticatedUser, checkDeactivated, allMessages);
 
 module.exports = router;

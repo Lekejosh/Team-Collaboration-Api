@@ -1,13 +1,31 @@
 const express = require("express");
 const router = express.Router();
-const { isAuthenticatedUser } = require("../middlewares/auth");
-const { accessChat, fetchChats, createGroupChat, renameGroup, addToGroup, removeFromGroup } = require("../controllers/chatControllers");
+const {
+  isAuthenticatedUser,
+  checkDeactivated,
+} = require("../middlewares/auth");
+const {
+  accessChat,
+  fetchChats,
+  createGroupChat,
+  renameGroup,
+  addToGroup,
+  removeFromGroup,
+} = require("../controllers/chatControllers");
 
-router.route("/").post(isAuthenticatedUser, accessChat);
-router.route('/fetch').get(isAuthenticatedUser,fetchChats)
-router.route("/create/group").post(isAuthenticatedUser, createGroupChat);
-router.route("/group/rename").put(isAuthenticatedUser, renameGroup);
-router.route("/group/add").put(isAuthenticatedUser, addToGroup);
-router.route("/group/remove").put(isAuthenticatedUser, removeFromGroup);
+router.route("/").post(isAuthenticatedUser, checkDeactivated, accessChat);
+router.route("/fetch").get(isAuthenticatedUser, checkDeactivated, fetchChats);
+router
+  .route("/create/group")
+  .post(isAuthenticatedUser, checkDeactivated, createGroupChat);
+router
+  .route("/group/rename")
+  .put(isAuthenticatedUser, checkDeactivated, renameGroup);
+router
+  .route("/group/add")
+  .put(isAuthenticatedUser, checkDeactivated, addToGroup);
+router
+  .route("/group/remove")
+  .put(isAuthenticatedUser, checkDeactivated, removeFromGroup);
 
 module.exports = router;

@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { isAuthenticatedUser } = require("../middlewares/auth");
+const {
+  isAuthenticatedUser,
+  checkDeactivated,
+} = require("../middlewares/auth");
 const {
   register,
   login,
@@ -24,24 +27,45 @@ const upload = require("../utils/multer");
 
 router.route("/register").post(register);
 router.route("/login").post(login);
-router.route("/logout").post(isAuthenticatedUser, logoutUser);
-router.route("/update/password").put(isAuthenticatedUser, updatePassword);
+router.route("/logout").post(isAuthenticatedUser, checkDeactivated, logoutUser);
+router
+  .route("/update/password")
+  .put(isAuthenticatedUser, checkDeactivated, updatePassword);
 router.route("/forgot/password").post(forgotPassword);
 router.route("/password/reset/:token").post(resetPassword);
-router.route("/2fa/activate").post(isAuthenticatedUser, twoFactorAuth);
+router
+  .route("/2fa/activate")
+  .post(isAuthenticatedUser, checkDeactivated, twoFactorAuth);
 router
   .route("/update/avatar")
-  .post(upload.single("avatar"), isAuthenticatedUser, uploadAvatar);
-router.route("/generate/email/otp").get(isAuthenticatedUser, generateMailOTP);
+  .post(
+    upload.single("avatar"),
+    isAuthenticatedUser,
+    checkDeactivated,
+    uploadAvatar
+  );
+router
+  .route("/generate/email/otp")
+  .get(isAuthenticatedUser, checkDeactivated, generateMailOTP);
 router
   .route("/generate/mobile/otp")
-  .get(isAuthenticatedUser, generateMobileOTP);
-router.route("/update/profile").put(isAuthenticatedUser, updateProfile);
-router.route("/update/mobile").put(isAuthenticatedUser, updateMobileNumber);
-router.route("/update/email").put(isAuthenticatedUser, updateEmail);
-router.route("/verify/otp").post(isAuthenticatedUser, verifyMobileAndEmailOTP);
-router.route("/qr/generate").post(isAuthenticatedUser, generateQr);
+  .get(isAuthenticatedUser, checkDeactivated, generateMobileOTP);
+router
+  .route("/update/profile")
+  .put(isAuthenticatedUser, checkDeactivated, updateProfile);
+router
+  .route("/update/mobile")
+  .put(isAuthenticatedUser, checkDeactivated, updateMobileNumber);
+router
+  .route("/update/email")
+  .put(isAuthenticatedUser, checkDeactivated, updateEmail);
+router
+  .route("/verify/otp")
+  .post(isAuthenticatedUser, checkDeactivated, verifyMobileAndEmailOTP);
+router
+  .route("/qr/generate")
+  .post(isAuthenticatedUser, checkDeactivated, generateQr);
 router.route("/qr/scan").post(scanQr);
-router.route("/").get(isAuthenticatedUser, allUsers);
+router.route("/").get(isAuthenticatedUser, checkDeactivated, allUsers);
 
 module.exports = router;
