@@ -11,6 +11,8 @@ const sendEmail = require("../utils/sendMail");
 const { generateOTP } = require("../utils/otpGenerator");
 const axios = require("axios");
 
+//TODO: perfect the OTPs well
+
 exports.register = catchAsyncErrors(async (req, res, next) => {
   const {
     firstName,
