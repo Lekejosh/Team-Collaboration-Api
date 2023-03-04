@@ -18,12 +18,14 @@ const {
   logoutUser,
   forgotPassword,
   resetPassword,
+  updatePassword,
 } = require("../controllers/userController");
 const upload = require("../utils/multer");
 
 router.route("/register").post(register);
 router.route("/login").post(login);
 router.route("/logout").post(isAuthenticatedUser, logoutUser);
+router.route("/update/password").put(isAuthenticatedUser, updatePassword);
 router.route("/forgot/password").post(forgotPassword);
 router.route("/password/reset/:token").post(resetPassword);
 router.route("/2fa/activate").post(isAuthenticatedUser, twoFactorAuth);
