@@ -11,6 +11,8 @@ const {
   sendVideoMessage,
   sendImageMessage,
   sendDocumentMessage,
+  deleteMessageFromSelf,
+  deleteMessageFromEverybody,
 } = require("../controllers/messageController");
 const upload = require("../utils/audioMulter");
 const uploadImage = require("../utils/Multer");
@@ -53,5 +55,12 @@ router
 router
   .route("/:chatId")
   .get(isAuthenticatedUser, checkDeactivated, allMessages);
+
+router
+  .route("/:chatId/:messageId")
+  .delete(isAuthenticatedUser, checkDeactivated, deleteMessageFromSelf);
+router
+  .route("/:chatId/:messageId/everybody")
+  .delete(isAuthenticatedUser, checkDeactivated, deleteMessageFromEverybody);
 
 module.exports = router;
