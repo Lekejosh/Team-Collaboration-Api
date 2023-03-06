@@ -165,7 +165,6 @@ exports.allMessages = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
-
 // TODO: Work on this
 exports.deleteMessageFromSelf = catchAsyncErrors(async (req, res, next) => {
   const message = await Message.findOne({
@@ -176,11 +175,20 @@ exports.deleteMessageFromSelf = catchAsyncErrors(async (req, res, next) => {
     .populate("chat");
 
   if (!message) {
-   return next(new ErrorHandler("Message not found", 404));
+    return next(new ErrorHandler("Message not found", 404));
+  }
+
+  const isDeletedBy = req.user._id.toString();
+  const existingId = message.isDeletedBy.find(
+    (userId) => userId.toString() === isDeletedBy
+  );
+
+  if (existingId) {
+    return next(new ErrorHandler("Already deleted by you", 400));
   }
 
   message.isDeleted = true;
-  message.isDeletedBy.push(req.user._id);
+  message.isDeletedBy.push(isDeletedBy);
   await message.save();
 
   res.status(200).json({ success: true });
@@ -199,7 +207,16 @@ exports.deleteMessageFromEverybody = catchAsyncErrors(
       return next(new ErrorHandler("Message not found", 404));
     }
 
-    if (message.sender.toString() === req.user._id.toString()) {
+    const isDeletedBy = req.user._id.toString();
+    const existingId = message.isDeletedBy.find(
+      (userId) => userId.toString() === isDeletedBy
+    );
+
+    if (existingId) {
+      return next(new ErrorHandler("Already deleted by you", 400));
+    }
+
+    if (message.sender._id.toString() === req.user._id.toString()) {
       await message.remove();
       return res.status(200).json({ success: true });
     }

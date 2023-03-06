@@ -59,6 +59,7 @@ const userSchema = new mongoose.Schema(
     twoFactorAuth: {
       set: { type: Boolean, default: false },
       pin: { type: String, maxlength: [4, "Max Length Can't pass 4"] },
+      select: false,
     },
 
     avatar: {

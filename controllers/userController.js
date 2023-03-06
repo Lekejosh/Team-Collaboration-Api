@@ -601,7 +601,7 @@ exports.allUsers = catchAsyncErrors(async (req, res, next) => {
     ? {
         $or: [
           { username: { $regex: req.query.search, $options: "i" } },
-          { email: { $regex: req.query.search, $options: "i" } },
+          { mobileNumber: { $regex: req.query.search, $options: "i" } },
         ],
       }
     : {};

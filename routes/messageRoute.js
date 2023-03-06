@@ -60,7 +60,7 @@ router
   .route("/:chatId/:messageId")
   .delete(isAuthenticatedUser, checkDeactivated, deleteMessageFromSelf);
 router
-  .route("/:chatId/:messageId/everybody")
+  .route("/:chatId/:messageId/all")
   .delete(isAuthenticatedUser, checkDeactivated, deleteMessageFromEverybody);
 
 module.exports = router;
