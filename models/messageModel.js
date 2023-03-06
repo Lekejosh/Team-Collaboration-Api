@@ -34,6 +34,15 @@ const messageSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    isDeleted: {
+      type: Boolean,
+    },
+    isDeletedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     chat: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Chat",

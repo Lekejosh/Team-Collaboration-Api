@@ -9,13 +9,13 @@ process.on("uncaughtException", (err) => {
   console.log(`Shutting down the server due to uncaught Exception`);
   process.exit(1);
 });
+mongoose.set("strictQuery", true);
 mongoose
   .connect(`${process.env.DB_URI}/${process.env.DB_NAME}`)
   .catch((err) => {
     console.error(err);
   });
 
-mongoose.set("strictQuery", true);
 const server = app.listen(process.env.PORT, () => {
   console.log(
     `Server is working on http://localhost:${process.env.PORT}`.cyan.underline

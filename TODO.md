@@ -13,5 +13,5 @@
 * Team Collaboration
 * Video and Audio call 
 * Live Audio Closed Captioning
-* Delete Message from self and everyone
+* Delete Message from self and everyone ✔
 * ... More to add

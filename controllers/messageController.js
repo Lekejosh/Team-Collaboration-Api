@@ -19,11 +19,11 @@ exports.sendMessage = catchAsyncErrors(async (req, res, next) => {
 
   try {
     var message = await Message.create(newMessage);
-    message = await message.populate("sender", "name avatar");
+    message = await message.populate("sender", "username avatar");
     message = await message.populate("chat");
     message = await User.populate(message, {
       path: "chat.users",
-      select: "name avatar email",
+      select: "username avatar email",
     });
 
     await Chat.findByIdAndUpdate(req.body.chatId, {
@@ -49,11 +49,11 @@ exports.sendAudioMessage = catchAsyncErrors(async (req, res, next) => {
   };
   try {
     var message = await Message.create(newAudioMessage);
-    message = await message.populate("sender", "name avatar");
+    message = await message.populate("sender", "username avatar");
     message = await message.populate("chat");
     message = await User.populate(message, {
       path: "chat.users",
-      select: "name avatar email",
+      select: "username avatar email",
     });
 
     await Chat.findByIdAndUpdate(req.body.chatId, {
@@ -78,11 +78,11 @@ exports.sendVideoMessage = catchAsyncErrors(async (req, res, next) => {
   };
   try {
     var message = await Message.create(newVideoMessage);
-    message = await message.populate("sender", "name avatar");
+    message = await message.populate("sender", "username avatar");
     message = await message.populate("chat");
     message = await User.populate(message, {
       path: "chat.users",
-      select: "name avatar email",
+      select: "username avatar email",
     });
 
     await Chat.findByIdAndUpdate(req.body.chatId, {
@@ -107,11 +107,11 @@ exports.sendImageMessage = catchAsyncErrors(async (req, res, next) => {
   };
   try {
     var message = await Message.create(newMessage);
-    message = await message.populate("sender", "name avatar");
+    message = await message.populate("sender", "username avatar");
     message = await message.populate("chat");
     message = await User.populate(message, {
       path: "chat.users",
-      select: "name avatar email",
+      select: "username avatar email",
     });
 
     await Chat.findByIdAndUpdate(req.body.chatId, {
@@ -122,7 +122,6 @@ exports.sendImageMessage = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Invalid Chat Id", 400));
   }
 });
-
 
 exports.sendDocumentMessage = catchAsyncErrors(async (req, res, next) => {
   const myCloud = await cloudinary.v2.uploader.upload(req.file.path, {
@@ -138,11 +137,11 @@ exports.sendDocumentMessage = catchAsyncErrors(async (req, res, next) => {
   };
   try {
     var message = await Message.create(newMessage);
-    message = await message.populate("sender", "name avatar");
+    message = await message.populate("sender", "username avatar");
     message = await message.populate("chat");
     message = await User.populate(message, {
       path: "chat.users",
-      select: "name avatar email",
+      select: "username avatar email",
     });
 
     await Chat.findByIdAndUpdate(req.body.chatId, {
@@ -154,12 +153,10 @@ exports.sendDocumentMessage = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
-
-
 exports.allMessages = catchAsyncErrors(async (req, res, next) => {
   try {
     const messages = await Message.find({ chat: req.params.chatId })
-      .populate("sender", "name avatar email")
+      .populate("sender", "username avatar email")
       .populate("chat");
 
     res.status(200).json(messages);
@@ -167,3 +164,46 @@ exports.allMessages = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Invalid request", 400));
   }
 });
+
+
+// TODO: Work on this
+exports.deleteMessageFromSelf = catchAsyncErrors(async (req, res, next) => {
+  const message = await Message.findOne({
+    chat: req.params.chatId,
+    _id: req.params.messageId,
+  })
+    .populate("sender", "username avatar email")
+    .populate("chat");
+
+  if (!message) {
+   return next(new ErrorHandler("Message not found", 404));
+  }
+
+  message.isDeleted = true;
+  message.isDeletedBy.push(req.user._id);
+  await message.save();
+
+  res.status(200).json({ success: true });
+});
+
+exports.deleteMessageFromEverybody = catchAsyncErrors(
+  async (req, res, next) => {
+    const message = await Message.findOne({
+      chat: req.params.chatId,
+      _id: req.params.messageId,
+    })
+      .populate("sender", "username avatar email")
+      .populate("chat");
+
+    if (!message) {
+      return next(new ErrorHandler("Message not found", 404));
+    }
+
+    if (message.sender.toString() === req.user._id.toString()) {
+      await message.remove();
+      return res.status(200).json({ success: true });
+    }
+
+    return next(new ErrorHandler("Unauthorized", 401));
+  }
+);
