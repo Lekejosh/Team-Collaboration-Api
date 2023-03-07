@@ -43,7 +43,7 @@ router
     isAuthenticatedUser,
     checkDeactivated,
     sendImageMessage
-  );
+  );2
 router
   .route("/send/document")
   .post(
