@@ -165,7 +165,7 @@ exports.allMessages = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
-// TODO: Work on this
+
 exports.deleteMessageFromSelf = catchAsyncErrors(async (req, res, next) => {
   const message = await Message.findOne({
     chat: req.params.chatId,
