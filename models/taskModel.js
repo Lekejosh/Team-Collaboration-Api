@@ -1,10 +1,6 @@
 const mongoose = require("mongoose");
 
 const taskSchema = new mongoose.Schema({
-  boardId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Board",
-  },
   assignedTo: [
     {
       type: mongoose.Schema.Types.ObjectId,
@@ -12,12 +8,14 @@ const taskSchema = new mongoose.Schema({
     },
   ],
   title: {
-    type: Date,
+    type: String,
   },
- card:[{
-    type: mongoose.Schema.Types.ObjectId,
-    ref:'Card'
- }]
+  card: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Card",
+    },
+  ],
 });
 
-module.exports = mongoose.model("Task",taskSchema)
+module.exports = mongoose.model("Task", taskSchema);

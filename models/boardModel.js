@@ -15,7 +15,7 @@ const boardSchema = new mongoose.Schema(
     priority: {
       type: Boolean,
     },
-    task: [
+    tasks: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Task",
