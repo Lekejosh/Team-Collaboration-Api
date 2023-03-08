@@ -2,31 +2,31 @@ const mongoose = require("mongoose");
 
 const boardSchema = new mongoose.Schema(
   {
+    title: {
+      type: String,
+    },
     type: {
       type: String,
     },
-    imageBackground: {
+    background: {
       type: String,
       default: "White",
+    },
+    priority: {
+      type: Boolean,
     },
     task: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: task,
+        ref: "Task",
       },
     ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    collection: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Task",
-      },
-    ],
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Board",boardSchema)
+module.exports = mongoose.model("Board", boardSchema);

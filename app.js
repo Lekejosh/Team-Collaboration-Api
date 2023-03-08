@@ -21,11 +21,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const user = require('./routes/userRoute')
 const chat = require('./routes/chatRoute')
 const message = require("./routes/messageRoute.js");
+const task = require('./routes/taskRoute')
 
 //Route
 app.use("/api/v1/user", user)
 app.use('/api/v1/chat', chat)
 app.use("/api/v1/message", message);
+app.use("/api/v1/task", task);
 
 const sessionConfig = {
   secret: "egeGBTCTEcgwrtgc54cg66666666h.b/3/3.b/[g[er2",
