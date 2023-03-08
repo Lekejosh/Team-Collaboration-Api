@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const taskSchema = new mongoose.Schema({
+  boardId: { type: mongoose.Schema.Types.ObjectId, ref: "Board" },
   assignedTo: [
     {
       type: mongoose.Schema.Types.ObjectId,
@@ -10,7 +11,7 @@ const taskSchema = new mongoose.Schema({
   title: {
     type: String,
   },
-  card: [
+  cards: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Card",

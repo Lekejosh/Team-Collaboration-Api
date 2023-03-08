@@ -2,6 +2,9 @@ const mongoose = require("mongoose");
 
 const cardSchema = new mongoose.Schema(
   {
+    title:{
+      type:String
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

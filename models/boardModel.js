@@ -15,6 +15,16 @@ const boardSchema = new mongoose.Schema(
     priority: {
       type: Boolean,
     },
+    group:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref:"Chat"
+    },
+    members: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     tasks: [
       {
         type: mongoose.Schema.Types.ObjectId,

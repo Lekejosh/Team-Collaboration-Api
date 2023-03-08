@@ -16,6 +16,12 @@ const chatSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    workspace: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Board",
+      },
+    ],
     latestMessage: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",
