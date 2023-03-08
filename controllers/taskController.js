@@ -1,7 +1,7 @@
 const Board = require("../models/boardModel");
 const User = require("../models/userModel");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
-const ErrorHandler = require("../middlewares/errorHandler");
+const ErrorHandler = require("../utils/errorHandler");
 const sendEmail = require("../utils/sendMail");
 
 exports.createBoard = catchAsyncErrors(async (req, res, next) => {
@@ -18,7 +18,7 @@ exports.createBoard = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.boardEdit = catchAsyncErrors(async (req, res, next) => {
-  const { id } = req.params;    
+  const { id } = req.params;
 
   const { title, type, priority, background } = req.body;
 
@@ -35,3 +35,19 @@ exports.boardEdit = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, board });
 });
 
+exports.deleteBoard = catchAsyncErrors(async (req, res, next) => {
+  const { id } = req.params;
+  const board = await Board.findById(id);
+
+  if (!board) {
+    return next(new ErrorHandler("Board Not Found", 404));
+  }
+  if (board.createdBy.toString() !== req.user._id.toString()) {
+    return next(new ErrorHandler("Unauthorized to perform this action", 401));
+  }
+
+  board.remove();
+  await board.save();
+
+  res.status(200).json({ success: true });
+});
