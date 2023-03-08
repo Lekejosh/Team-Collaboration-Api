@@ -1,5 +1,6 @@
 const Board = require("../models/boardModel");
 const User = require("../models/userModel");
+const Card = require("../models/cardModel");
 const Task = require("../models/taskModel");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const ErrorHandler = require("../utils/errorHandler");
@@ -19,7 +20,7 @@ exports.createBoard = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.getBoard = catchAsyncErrors(async (req, res, next) => {
-  const board = await Board.findById(req.params.id).populate("tasks")
+  const board = await Board.findById(req.params.id).populate("tasks");
   if (!board) {
     return next(new ErrorHandler("Board not Found", 404));
   }
@@ -27,7 +28,7 @@ exports.getBoard = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.getAllBoard = catchAsyncErrors(async (req, res, next) => {
-  const board = await Board.find({ createdBy: req.user._id })
+  const board = await Board.find({ createdBy: req.user._id });
 
   if (!board) {
     return next(new ErrorHandler("No Board found", 404));
@@ -90,4 +91,52 @@ exports.createTask = catchAsyncErrors(async (req, res, next) => {
     success: true,
     task,
   });
+});
+
+exports.editTask = catchAsyncErrors(async (req, res, next) => {
+  const { id } = req.params;
+  const { title } = req.body;
+  const task = await Task.findByIdAndUpdate(
+    id,
+    { title: title },
+    { new: true }
+  );
+
+  if (!task) {
+    return next(new ErrorHandler("Task not Found", 404));
+  }
+  res.status(200).json({
+    success: true,
+    task,
+  });
+});
+
+exports.deleteTask = catchAsyncErrors(async (req, res, next) => {
+  const { id, boardId } = req.params;
+  const task = await Task.findById(id);
+
+  if (!task) {
+    return next(new ErrorHandler("Task not found", 404));
+  }
+
+  const board = await Board.findById(boardId);
+
+  if (!board) {
+    return next(new ErrorHandler("Board not found", 404));
+  }
+
+  const tasks = board.tasks;
+
+  // Check if the task exists in the board's tasks
+  const taskIndex = tasks.findIndex((task) => task._id.toString() === id);
+
+  if (taskIndex === -1) {
+    return next(new ErrorHandler("Task not found in board", 404));
+  }
+
+  tasks.splice(taskIndex, 1);
+  await task.remove();
+  await board.save();
+
+  res.status(200).json({ success: true });
 });

@@ -2,10 +2,6 @@ const mongoose = require("mongoose");
 
 const cardSchema = new mongoose.Schema(
   {
-    taskId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Task",
-    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

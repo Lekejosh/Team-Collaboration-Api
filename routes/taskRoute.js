@@ -12,6 +12,8 @@ const {
   getBoard,
   getAllBoard,
   createTask,
+  deleteTask,
+  editTask,
 } = require("../controllers/taskController");
 
 router.route("/").post(isAuthenticatedUser, checkDeactivated, createBoard);
@@ -24,5 +26,7 @@ router.route('/all').get(isAuthenticatedUser, checkDeactivated, getAllBoard)
 
 //Task
 router.route('/create-task/:boardId').post(isAuthenticatedUser, checkDeactivated,createTask)
+router.route('/edit/:id').put(isAuthenticatedUser, checkDeactivated,editTask)
+router.route('/delete/:id/:boardId').delete(isAuthenticatedUser,checkDeactivated,deleteTask)
 
 module.exports = router;
