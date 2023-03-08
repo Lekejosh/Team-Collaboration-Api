@@ -1,6 +1,7 @@
 const Board = require("../models/boardModel");
 const User = require("../models/userModel");
 const Card = require("../models/cardModel");
+const Checklist = require("../models/checklistModel");
 const Chat = require("../models/chatModel");
 const Task = require("../models/taskModel");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
@@ -250,7 +251,7 @@ exports.editCard = catchAsyncErrors(async (req, res, next) => {
     startDate: req.body.startDate,
     dueDate: req.body.dueDate,
     startDateReminder: req.body.startDateReminder,
-    dueDateReminder: req.body.endDateReminder,
+    dueDateReminder: req.body.dueDateReminder,
   };
 
   const card = await Card.findByIdAndUpdate(cardId, edit, { new: true });
@@ -260,4 +261,54 @@ exports.editCard = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, card });
 });
 
+exports.deleteCard = catchAsyncErrors(async (req, res, next) => {
+  const { cardId, taskId } = req.params;
+
+  if (!cardId) {
+    return next(new ErrorHandler("CardId not specified", 400));
+  }
+
+  const card = await Card.findById(cardId);
+  if (!card) {
+    return next(new ErrorHandler("Card not found", 404));
+  }
+
+  const task = await Task.findById(taskId);
+
+  if (!task) {
+    return next(new ErrorHandler("Task not found", 404));
+  }
+
+  if (req.user._id.toString() !== card.createdBy.toString()) {
+    return next(new ErrorHandler("Unauthorized", 401));
+  }
+
+  await card.remove();
+  await task.cards.pull(cardId);
+  await task.save();
+
+  res.status(200).json({ success: true });
+});
+
 exports.members = catchAsyncErrors;
+
+exports.createChecklists = catchAsyncErrors(async (req, res, next) => {
+  const { cardId } = req.params;
+  const { title } = req.body;
+
+  if (!cardId) {
+    return next(new ErrorHandler("CardId not specified", 400));
+  }
+
+  const card = await Card.findById(cardId)
+
+  if (!card) {
+    return next(new ErrorHandler("Card not found", 404));
+  }
+  const checklist = await Checklist.create({ title, cardId: cardId });
+
+  card.checklist.push(checklist._id);
+  await card.save();
+  await card.populate('checklist')
+  res.status(200).json({ success: true, card });
+});

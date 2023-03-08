@@ -17,15 +17,21 @@ const {
   createCard,
   getTasks,
   editCard,
+  deleteCard,
+  createChecklists,
 } = require("../controllers/taskController");
 
-router.route("/:groupId").post(isAuthenticatedUser, checkDeactivated, createBoard);
+router
+  .route("/:groupId")
+  .post(isAuthenticatedUser, checkDeactivated, createBoard);
 router
   .route("/board/:id")
   .get(isAuthenticatedUser, checkDeactivated, getBoard)
   .put(isAuthenticatedUser, checkDeactivated, boardEdit)
   .delete(isAuthenticatedUser, checkDeactivated, deleteBoard);
-router.route("/all/board").get(isAuthenticatedUser, checkDeactivated, getAllBoard);
+router
+  .route("/all/board")
+  .get(isAuthenticatedUser, checkDeactivated, getAllBoard);
 
 //Task
 router
@@ -46,5 +52,13 @@ router
 router
   .route("/card/edit/:cardId")
   .put(isAuthenticatedUser, checkDeactivated, editCard);
+router
+  .route("/card/:taskId/:cardId")
+  .delete(isAuthenticatedUser, checkDeactivated, deleteCard);
+
+//Checklist
+router
+  .route("/checklist/:cardId")
+  .post(isAuthenticatedUser, checkDeactivated, createChecklists);
 
 module.exports = router;
