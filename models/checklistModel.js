@@ -13,10 +13,10 @@ const checklistSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
       },
-      addMembers: {
+      addMembers:[ {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Users",
-      },
+      }],
       startDate: {
         type: Date,
       },

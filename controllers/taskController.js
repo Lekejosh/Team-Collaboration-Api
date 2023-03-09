@@ -26,7 +26,7 @@ exports.createBoard = catchAsyncErrors(async (req, res, next) => {
   const members = JSON.parse(users);
   members.push(req.user._id.toString());
   //  const members = JSON.stringify(groupMembers);
-  console.log(members);
+  // console.log(members);
 
   const group = await Chat.findById(groupId).populate("users");
 
@@ -300,7 +300,7 @@ exports.createChecklists = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("CardId not specified", 400));
   }
 
-  const card = await Card.findById(cardId)
+  const card = await Card.findById(cardId);
 
   if (!card) {
     return next(new ErrorHandler("Card not found", 404));
@@ -309,6 +309,60 @@ exports.createChecklists = catchAsyncErrors(async (req, res, next) => {
 
   card.checklist.push(checklist._id);
   await card.save();
-  await card.populate('checklist')
+  await card.populate("checklist");
   res.status(200).json({ success: true, card });
+});
+
+exports.addChecklistContent = catchAsyncErrors(async (req, res, next) => {
+  const { checklistId, boardId } = req.params;
+  const { cardId } = req.query;
+  const { title, dueDate, startDate, addMembers } = req.body;
+  const members = JSON.parse(addMembers);
+
+  if (!cardId || !boardId || !checklistId) {
+    return next(new ErrorHandler("All parameters not specified", 400));
+  }
+
+  const board = await Board.findById(boardId);
+  if (!board) {
+    return next(new ErrorHandler("Board not found", 404));
+  }
+
+  const card = await Card.findById(cardId);
+  if (!card) {
+    return next(new ErrorHandler("Card not found", 404));
+  }
+
+  const checklistExists = card.checklist.some((checklist) => {
+    return checklist.toString() === checklistId.toString();
+  });
+
+  if (!checklistExists) {
+    return next(new ErrorHandler("Checklist not found in card", 404));
+  }
+
+  const selectedUsers = [];
+  for (let i = 0; i < members.length; i++) {
+    const member = members[i];
+
+    const memberExists = board.members.find(
+      (user) => user._id.toString() === member
+    );
+
+    if (memberExists) {
+      selectedUsers.push(memberExists);
+    } else {
+      return next(new ErrorHandler(`User ${member} is not in the group`, 400));
+    }
+  }
+
+  const checklist = await Checklist.findById(checklistId);
+  if (!checklist) {
+    return next(new ErrorHandler("Checklist not found", 404));
+  }
+
+  checklist.content.push({ title, dueDate, startDate,isCompleted:false, members: selectedUsers });
+  await checklist.save();
+
+  res.status(200).json({ success: true, checklist });
 });

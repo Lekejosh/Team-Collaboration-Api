@@ -19,6 +19,7 @@ const {
   editCard,
   deleteCard,
   createChecklists,
+  addChecklistContent,
 } = require("../controllers/taskController");
 
 router
@@ -60,5 +61,6 @@ router
 router
   .route("/checklist/:cardId")
   .post(isAuthenticatedUser, checkDeactivated, createChecklists);
+router.route("/checklist/content/add/:checklistId/:boardId").put(isAuthenticatedUser,checkDeactivated,addChecklistContent)
 
 module.exports = router;
