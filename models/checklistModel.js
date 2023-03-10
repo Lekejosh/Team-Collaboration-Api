@@ -4,6 +4,10 @@ const checklistSchema = new mongoose.Schema({
   title: {
     type: String,
   },
+  totalCompleted:{
+    type:Number,
+    default:0
+  },
   content: [
     {
       title: {
