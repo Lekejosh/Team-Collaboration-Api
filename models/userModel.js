@@ -109,7 +109,14 @@ userSchema.methods.getJWTToken = function () {
     expiresIn: process.env.JWT_EXPIRE,
   });
 };
-
+userSchema.methods.getRefreshToken = function () {
+  const refreshToken = crypto.randomBytes(20).toString("hex");
+  this.refreshToken = crypto
+    .createHash("sha256")
+    .update(refreshToken)
+    .digest("hex");
+  return refreshToken;
+};
 userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

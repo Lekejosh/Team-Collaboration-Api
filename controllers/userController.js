@@ -443,10 +443,26 @@ exports.updateEmail = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.logoutUser = catchAsyncErrors(async (req, res, next) => {
+  const refreshToken = req.cookies.refreshToken;
+  if (!refreshToken) {
+    return next(new ErrorHandler("User not logged in", 401));
+  }
+
+  // Delete refresh token from database
+  await RefreshToken.deleteOne({ token: refreshToken });
+
+  // Delete access token cookie
   res.cookie("token", null, {
     expires: new Date(Date.now()),
     httpOnly: true,
   });
+
+  // Delete refresh token cookie
+  res.cookie("refreshToken", null, {
+    expires: new Date(Date.now()),
+    httpOnly: true,
+  });
+
   res.status(200).json({ success: true });
 });
 
