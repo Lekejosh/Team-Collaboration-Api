@@ -4,9 +4,13 @@ const checklistSchema = new mongoose.Schema({
   title: {
     type: String,
   },
-  totalCompleted:{
-    type:Number,
-    default:0
+  totalCompleted: {
+    type: Number,
+    default: 0,
+  },
+  totalTask: {
+    type: Number,
+    default: 0,
   },
   content: [
     {
@@ -17,10 +21,12 @@ const checklistSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
       },
-      addMembers:[ {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Users",
-      }],
+      addMembers: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Users",
+        },
+      ],
       startDate: {
         type: Date,
       },

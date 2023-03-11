@@ -420,7 +420,12 @@ exports.createChecklists = catchAsyncErrors(async (req, res, next) => {
 
 exports.addChecklistContent = catchAsyncErrors(async (req, res, next) => {
   const { checklistId, cardId } = req.params;
-  const { title, dueDate, startDate, addMembers } = req.body;
+  const {
+    title = "",
+    dueDate = null,
+    startDate = null,
+    addMembers = "[]",
+  } = req.body;
   const members = JSON.parse(addMembers);
 
   if (!cardId || !checklistId) {
@@ -460,6 +465,10 @@ exports.addChecklistContent = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Checklist not found", 404));
   }
 
+  const oldCompletedTasks = checklist.content.filter(
+    (task) => task.isCompleted
+  );
+
   checklist.content.push({
     title,
     dueDate,
@@ -467,6 +476,27 @@ exports.addChecklistContent = catchAsyncErrors(async (req, res, next) => {
     isCompleted: false,
     addMembers: selectedUsers,
   });
+
+  // Update totalCompleted property for completed tasks
+  const newCompletedTasks = checklist.content.filter(
+    (task) => task.isCompleted
+  );
+  const totalCompletedTasks = newCompletedTasks.length;
+
+  if (totalCompletedTasks !== oldCompletedTasks.length) {
+    // Completed status of a task has been changed
+    checklist.totalTask = checklist.content.length;
+    checklist.totalCompleted = totalCompletedTasks;
+  } else if (totalCompletedTasks > 0) {
+    // A new task has been completed
+    checklist.totalTask = checklist.content.length;
+    checklist.totalCompleted = totalCompletedTasks;
+  } else {
+    // No tasks are completed
+    checklist.totalTask = checklist.content.length;
+    checklist.totalCompleted = 0;
+  }
+
   await checklist.save();
 
   res.status(200).json({ success: true, checklist });
@@ -588,3 +618,137 @@ exports.removeMemberFromContent = catchAsyncErrors(async (req, res, next) => {
     message: "Member(s) removed from content successfully",
   });
 });
+
+exports.onComplete = catchAsyncErrors(async (req, res, next) => {
+  const { cardId, checklistId, contentId } = req.params;
+
+  if (!cardId || !checklistId || !contentId)
+    return next(new ErrorHandler("IDs not specified", 400));
+
+  const card = await Card.findById(cardId);
+  if (!card) return next(new ErrorHandler("Card not found", 404));
+
+  const checklist = await Checklist.findById(checklistId);
+  if (!checklist) return next(new ErrorHandler("Checklist not found", 404));
+
+  const contentIndex = checklist.content.findIndex(
+    (c) => c._id.toString() === contentId
+  );
+  if (contentIndex === -1)
+    return next(new ErrorHandler("Content not found", 404));
+
+  const complete = req.body.isCompleted;
+  if (checklist.content[contentIndex].addMembers.length > 0) {
+    const userExist = checklist.content[contentIndex].addMembers.find(
+      (user) => user._id.toString() === req.user._id.toString()
+    );
+    console.log(card.createdBy._id.toString(), req.user._id.toString());
+    if (
+      userExist ||
+      card.createdBy._id.toString() === req.user._id.toString()
+    ) {
+      checklist.content[contentIndex].isCompleted =
+        complete || checklist.content[contentIndex].isCompleted;
+      await updateTotalCompleted(checklistId);
+      await checklist.save();
+
+      return res.status(200).json({ success: true });
+    } else {
+      return next(new ErrorHandler("Unauthorized"));
+    }
+  }
+
+  if (card.createdBy._id.toString() !== req.user._id.toString())
+    return next(new ErrorHandler("Unauthorized"));
+  checklist.content[contentIndex].isCompleted =
+    complete || checklist.content[contentIndex].isCompleted;
+  await updateTotalCompleted(checklistId);
+  await checklist.save();
+
+  res.status(200).json({ success: true });
+});
+
+exports.deleteChecklistContent = catchAsyncErrors(async (req, res, next) => {
+  const { checklistId, cardId, contentId } = req.params;
+  if (!checklistId || !cardId || !contentId) {
+    return next(new ErrorHandler("All parameters must be specified", 400));
+  }
+
+  const card = await Card.findById(cardId);
+  if (!card) {
+    return next(new ErrorHandler("Card not found", 404));
+  }
+
+  const checklist = await Checklist.findById(checklistId);
+  if (!checklist) {
+    return next(new ErrorHandler("Checklist not found", 404));
+  }
+
+  const contentIndex = checklist.content.findIndex(
+    (c) => c._id.toString() === contentId
+  );
+  if (contentIndex === -1) {
+    return next(new ErrorHandler("Content not found", 404));
+  }
+
+  if (checklist.content[contentIndex].addMembers.length > 0) {
+    const userExist = checklist.content[contentIndex].addMembers.find(
+      (user) => user._id.toString() === req.user._id.toString()
+    );
+    if (
+      userExist ||
+      card.createdBy._id.toString() === req.user._id.toString()
+    ) {
+      checklist.content.splice(contentIndex, 1);
+      await updateTotalCompleted(checklistId);
+      await checklist.save();
+
+      return res.status(200).json({ success: true });
+    } else {
+      return next(new ErrorHandler("Unauthorized", 401));
+    }
+  } else if (card.createdBy._id.toString() !== req.user._id.toString()) {
+    return next(new ErrorHandler("Unauthorized", 401));
+  } else {
+    checklist.content.splice(contentIndex, 1);
+    await updateTotalCompleted(checklistId);
+    await checklist.save();
+
+    res.status(200).json({ success: true });
+  }
+});
+ // TODO: Not consedring the last element in the array
+async function updateTotalCompleted(checklistId) {
+  const checklist = await Checklist.findById(checklistId);
+
+  if (!checklist) {
+    throw new Error("Checklist not found");
+  }
+
+  let totalCompleted = 0;
+  let totalTask = 0;
+  if (checklist.content.length > 0) {
+    for (let i = 0; i < checklist.content.length; i++) {
+      const contentItem = checklist.content[i];
+      if (contentItem.isCompleted) {
+        totalCompleted += 1;
+      }
+      if (i === checklist.content.length - 1) {
+        totalTask = i + 1;
+      }
+    }
+  }
+
+  const prevTotalCompleted = checklist.totalCompleted;
+  const prevTotalTask = checklist.totalTask;
+
+  checklist.totalCompleted = totalCompleted;
+  checklist.totalTask = totalTask;
+
+  // If the totalCompleted or totalTask count has changed, save the document
+  if (prevTotalCompleted !== totalCompleted || prevTotalTask !== totalTask) {
+    await checklist.save();
+  }
+
+  return checklist;
+}
