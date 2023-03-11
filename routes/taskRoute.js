@@ -26,6 +26,7 @@ const {
   removeMemberFromContent,
   onComplete,
   deleteChecklistContent,
+  addMembersToContent,
 } = require("../controllers/taskController");
 
 router
@@ -79,7 +80,11 @@ router
 router
   .route("/checklist/content/edit/:checklistId/:contentId/:cardId")
   .put(isAuthenticatedUser, checkDeactivated, editChecklistContent)
-  .delete(isAuthenticatedUser, checkDeactivated, removeMemberFromContent);
+  
+  router
+    .route("/checklist/content/member/:checklistId/:contentId/:cardId")
+    .put(isAuthenticatedUser, checkDeactivated, addMembersToContent)
+    .delete(isAuthenticatedUser, checkDeactivated, removeMemberFromContent);
 router
   .route("/checklist/content/complete/:checklistId/:contentId/:cardId")
   .patch(isAuthenticatedUser, checkDeactivated, onComplete);

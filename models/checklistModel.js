@@ -33,6 +33,28 @@ const checklistSchema = new mongoose.Schema({
       dueDate: {
         type: Date,
       },
+      lastEditedBy: [
+        {
+          user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+          },
+          time: {
+            type: Date,
+          },
+        },
+      ],
+    },
+  ],
+  lastEditedBy: [
+    {
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      time: {
+        type: Date,
+      },
     },
   ],
   cardId: {

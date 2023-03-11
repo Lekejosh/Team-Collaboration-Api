@@ -272,7 +272,6 @@ exports.editTask = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-
 exports.deleteTask = catchAsyncErrors(async (req, res, next) => {
   const { id, boardId } = req.params;
   const task = await Task.findById(id);
@@ -567,7 +566,58 @@ exports.editChecklistContent = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Content not found", 404));
   }
 
-  const { title, isCompleted, startDate, dueDate, users } = req.body;
+  const userExist = checklist.content[contentIndex].addMembers.find(
+    (user) => user._id.toString() === req.user._id.toString()
+  );
+
+  if (!userExist || card.createdBy._id.toString() !== req.user._id.toString()) {
+    return next(new ErrorHandler("Unauthorized", 401));
+  }
+
+  const { title, isCompleted, startDate, dueDate } = req.body;
+
+  checklist.content[contentIndex].title =
+    title || checklist.content[contentIndex].title;
+  checklist.content[contentIndex].isCompleted =
+    isCompleted || checklist.content[contentIndex].isCompleted;
+  checklist.content[contentIndex].startDate =
+    startDate || checklist.content[contentIndex].startDate;
+  checklist.content[contentIndex].dueDate =
+    dueDate || checklist.content[contentIndex].dueDate;
+
+  await checklist.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Checklist content updated successfully",
+  });
+});
+
+exports.addMembersToContent = catchAsyncErrors(async (req, res, next) => {
+  const { cardId, checklistId, contentId } = req.params;
+
+  if (!cardId || !checklistId || !contentId)
+    return next(new ErrorHandler("IDs not specified", 400));
+
+  const card = await Card.findById(cardId);
+  if (!card) return next(new ErrorHandler("Card not found", 404));
+
+  const checklist = await Checklist.findById(checklistId);
+
+  if (!checklist) return next(new ErrorHandler("Checklist not found", 404));
+
+  const contentIndex = checklist.content.findIndex(
+    (content) => content._id.toString() === contentId
+  );
+  if (contentIndex === -1) {
+    return next(new ErrorHandler("Content not found", 404));
+  }
+
+  if (card.createdBy._id.toString() !== req.user._id.toString())
+    return next(new ErrorHandler("Unauthorized", 401));
+
+  const { users } = req.body;
+
   const selectedUsers = [];
 
   if (users) {
@@ -589,15 +639,6 @@ exports.editChecklistContent = catchAsyncErrors(async (req, res, next) => {
       }
     }
   }
-
-  checklist.content[contentIndex].title =
-    title || checklist.content[contentIndex].title;
-  checklist.content[contentIndex].isCompleted =
-    isCompleted || checklist.content[contentIndex].isCompleted;
-  checklist.content[contentIndex].startDate =
-    startDate || checklist.content[contentIndex].startDate;
-  checklist.content[contentIndex].dueDate =
-    dueDate || checklist.content[contentIndex].dueDate;
   checklist.content[contentIndex].addMembers =
     selectedUsers || checklist.content[contentIndex].addMembers;
 
@@ -605,10 +646,10 @@ exports.editChecklistContent = catchAsyncErrors(async (req, res, next) => {
 
   res.status(200).json({
     success: true,
-    message: "Checklist content updated successfully",
+    message: "Member(s) Added Successfully",
   });
 });
-
+// TODO: Fix this
 exports.removeMemberFromContent = catchAsyncErrors(async (req, res, next) => {
   const { cardId, checklistId, contentId } = req.params;
 
@@ -622,12 +663,14 @@ exports.removeMemberFromContent = catchAsyncErrors(async (req, res, next) => {
 
   if (!checklist) return next(new ErrorHandler("Checklist not found", 404));
 
-  const content = checklist.content.id(contentId);
-
-  if (!content) return next(new ErrorHandler("Content not found", 404));
-
+  const contentIndex = checklist.content.findIndex(
+    (content) => content._id.toString() === contentId
+  );
+  if (contentIndex === -1) {
+    return next(new ErrorHandler("Content not found", 404));
+  }
   const { users } = req.body;
-  const members = JSON.parse(users);
+   const members = JSON.parse(users);
   const selectedUsers = [];
   if (card.createdBy._id.toString() !== req.user._id.toString())
     return next(new ErrorHandler("Unauthorized", 401));
@@ -635,7 +678,7 @@ exports.removeMemberFromContent = catchAsyncErrors(async (req, res, next) => {
   for (let i = 0; i < members.length; i++) {
     const member = members[i];
 
-    const memberExists = content.addMembers.find(
+    const memberExists = checklist.content[contentIndex].addMembers.find(
       (user) => user._id.toString() === member
     );
 
@@ -649,7 +692,7 @@ exports.removeMemberFromContent = catchAsyncErrors(async (req, res, next) => {
   }
 
   selectedUsers.forEach((user) => {
-    content.addMembers.pull(user);
+    checklist.content[contentIndex].addMembers.pull(user);
   });
 
   await card.save();
@@ -659,6 +702,7 @@ exports.removeMemberFromContent = catchAsyncErrors(async (req, res, next) => {
     message: "Member(s) removed from content successfully",
   });
 });
+
 
 exports.onComplete = catchAsyncErrors(async (req, res, next) => {
   const { cardId, checklistId, contentId } = req.params;
@@ -683,7 +727,7 @@ exports.onComplete = catchAsyncErrors(async (req, res, next) => {
     const userExist = checklist.content[contentIndex].addMembers.find(
       (user) => user._id.toString() === req.user._id.toString()
     );
-    console.log(card.createdBy._id.toString(), req.user._id.toString());
+
     if (
       userExist ||
       card.createdBy._id.toString() === req.user._id.toString()
