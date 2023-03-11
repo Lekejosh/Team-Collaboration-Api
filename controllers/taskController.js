@@ -649,8 +649,8 @@ exports.onComplete = catchAsyncErrors(async (req, res, next) => {
     ) {
       checklist.content[contentIndex].isCompleted =
         complete || checklist.content[contentIndex].isCompleted;
-      await updateTotalCompleted(checklistId);
-      await checklist.save();
+        await checklist.save();
+        await updateTotalCompleted(checklistId);
 
       return res.status(200).json({ success: true });
     } else {
@@ -662,8 +662,8 @@ exports.onComplete = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Unauthorized"));
   checklist.content[contentIndex].isCompleted =
     complete || checklist.content[contentIndex].isCompleted;
-  await updateTotalCompleted(checklistId);
-  await checklist.save();
+    await checklist.save();
+    await updateTotalCompleted(checklistId);
 
   res.status(200).json({ success: true });
 });
@@ -700,8 +700,8 @@ exports.deleteChecklistContent = catchAsyncErrors(async (req, res, next) => {
       card.createdBy._id.toString() === req.user._id.toString()
     ) {
       checklist.content.splice(contentIndex, 1);
-      await updateTotalCompleted(checklistId);
       await checklist.save();
+      await updateTotalCompleted(checklistId);
 
       return res.status(200).json({ success: true });
     } else {
@@ -711,13 +711,13 @@ exports.deleteChecklistContent = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Unauthorized", 401));
   } else {
     checklist.content.splice(contentIndex, 1);
-    await updateTotalCompleted(checklistId);
-    await checklist.save();
 
+    await checklist.save();
+    await updateTotalCompleted(checklistId);
     res.status(200).json({ success: true });
   }
 });
- // TODO: Not consedring the last element in the array
+
 async function updateTotalCompleted(checklistId) {
   const checklist = await Checklist.findById(checklistId);
 
