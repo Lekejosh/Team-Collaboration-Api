@@ -47,7 +47,7 @@ router
 router
   .route("/create-task/:boardId")
   .post(isAuthenticatedUser, checkDeactivated, createTask);
-router.route("/edit/:id").put(isAuthenticatedUser, checkDeactivated, editTask);
+router.route("/edit/:taskId/:boardId").put(isAuthenticatedUser, checkDeactivated, editTask);
 router
   .route("/delete/:id/:boardId")
   .delete(isAuthenticatedUser, checkDeactivated, deleteTask);

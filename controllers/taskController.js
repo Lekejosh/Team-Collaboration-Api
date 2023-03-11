@@ -8,6 +8,8 @@ const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const ErrorHandler = require("../utils/errorHandler");
 const sendEmail = require("../utils/sendMail");
 
+//TODO: Add member to board
+
 exports.createBoard = catchAsyncErrors(async (req, res, next) => {
   const { groupId } = req.params;
 
@@ -25,8 +27,6 @@ exports.createBoard = catchAsyncErrors(async (req, res, next) => {
   const { title, background, users } = req.body;
   const members = JSON.parse(users);
   members.push(req.user._id.toString());
-  //  const members = JSON.stringify(groupMembers);
-  // console.log(members);
 
   const group = await Chat.findById(groupId).populate("users");
 
@@ -74,6 +74,14 @@ exports.createBoard = catchAsyncErrors(async (req, res, next) => {
 
   group.workspace.push(board._id);
   await group.save();
+  for (let i = 0; i < selectedUsers.length; i++) {
+    const user = await User.findById(selectedUsers[i]);
+    await sendEmail({
+      email: `${user.username} <$user.email>`,
+      subject: "Added to Board",
+      html: `Dear <b>${user.lastName} ${user.firstName}</b>, \n\n\n\n You've been added to <b>${group.chatName}'s</b> Task Board`,
+    });
+  }
 
   await board.populate({
     path: "members",
@@ -90,11 +98,13 @@ exports.removeMemberFromBoard = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Board Id not specified", 404));
   }
 
-  const board = await Board.findById(id);
+  const board = await Board.findById(id).populate();
   if (!board) {
     return next(new ErrorHandler("Board not found", 404));
   }
-
+  if (board.createdBy.toString() !== req.user._id.toString()) {
+    return next(new ErrorHandler("Unauthorized to perform this action", 401));
+  }
   const { users } = req.body;
   const members = JSON.parse(users);
 
@@ -112,6 +122,14 @@ exports.removeMemberFromBoard = catchAsyncErrors(async (req, res, next) => {
         new ErrorHandler(`User ${member} is not a member of the board`, 400)
       );
     }
+  }
+  for (let i = 0; i < members.length; i++) {
+    const user = await User.findById(members[i]);
+    await sendEmail({
+      email: `${user.username} <$user.email>`,
+      subject: "Removed From Board",
+      html: `Dear <b>${user.lastName} ${user.firstName}</b>, \n\n\n\n You've been added to <b>${board.group.chatName}'s</b> Task Board`,
+    });
   }
 
   await board.save();
@@ -169,7 +187,6 @@ exports.deleteBoard = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Unauthorized to perform this action", 401));
   }
 
-  // Remove the board from the corresponding group
   const groupId = board.group;
   if (groupId) {
     const group = await Chat.findById(groupId);
@@ -178,8 +195,6 @@ exports.deleteBoard = catchAsyncErrors(async (req, res, next) => {
       await group.save();
     }
   }
-
-  // Delete the board
   await board.remove();
 
   res.status(200).json({ success: true });
@@ -193,11 +208,14 @@ exports.createTask = catchAsyncErrors(async (req, res, next) => {
   if (!board) {
     return next(new ErrorHandler("Board not Found", 404));
   }
-  const task = await Task.create({ title, boardId: boardId });
+  const task = await Task.create({
+    title,
+    boardId,
+    createdBy: { user: req.user._id, time: Date.now() },
+  });
 
   board.tasks.push(task._id);
   await board.save();
-
   res.status(201).json({
     success: true,
     task,
@@ -218,21 +236,42 @@ exports.getTasks = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.editTask = catchAsyncErrors(async (req, res, next) => {
-  const { id } = req.params;
+  const { taskId, boardId } = req.params;
   const { title } = req.body;
-  const task = await Task.findByIdAndUpdate(
-    id,
-    { title: title },
-    { new: true }
-  );
-  if (!task) {
-    return next(new ErrorHandler("Task not Found", 404));
+
+  if (!taskId || !boardId) {
+    return next(new ErrorHandler("All parameters are required", 400));
   }
+
+  const board = await Board.findById(boardId);
+
+  if (!board) {
+    return next(new ErrorHandler("Board not found", 404));
+  }
+
+  const member = board.members.find(
+    (user) => user._id.toString() === req.user._id.toString()
+  );
+
+  if (!member || board.createdBy.toString() !== req.user._id.toString()) {
+    return next(new ErrorHandler("Unauthorized", 401));
+  }
+
+  const task = await Task.findByIdAndUpdate(taskId, { title }, { new: true });
+
+  if (!task) {
+    return next(new ErrorHandler("Task not found", 404));
+  }
+
+  task.lastEditedBy.unshift({ user: req.user._id, time: Date.now() });
+  await task.save();
+
   res.status(200).json({
     success: true,
     task,
   });
 });
+
 
 exports.deleteTask = catchAsyncErrors(async (req, res, next) => {
   const { id, boardId } = req.params;
@@ -241,7 +280,9 @@ exports.deleteTask = catchAsyncErrors(async (req, res, next) => {
   if (!task) {
     return next(new ErrorHandler("Task not found", 404));
   }
-
+  if (board.createdBy.toString() !== req.user._id.toString()) {
+    return next(new ErrorHandler("Unauthorized to perform this action", 401));
+  }
   const board = await Board.findById(boardId);
 
   if (!board) {
@@ -649,8 +690,8 @@ exports.onComplete = catchAsyncErrors(async (req, res, next) => {
     ) {
       checklist.content[contentIndex].isCompleted =
         complete || checklist.content[contentIndex].isCompleted;
-        await checklist.save();
-        await updateTotalCompleted(checklistId);
+      await checklist.save();
+      await updateTotalCompleted(checklistId);
 
       return res.status(200).json({ success: true });
     } else {
@@ -662,8 +703,8 @@ exports.onComplete = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Unauthorized"));
   checklist.content[contentIndex].isCompleted =
     complete || checklist.content[contentIndex].isCompleted;
-    await checklist.save();
-    await updateTotalCompleted(checklistId);
+  await checklist.save();
+  await updateTotalCompleted(checklistId);
 
   res.status(200).json({ success: true });
 });
