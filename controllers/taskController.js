@@ -324,10 +324,48 @@ exports.createCard = catchAsyncErrors(async (req, res, next) => {
 exports.editCard = catchAsyncErrors(async (req, res, next) => {
   const { cardId, boardId } = req.params;
 
+  if (!cardId || !boardId) {
+    return next(new ErrorHandler("Parameters not Specified"));
+  }
+
   const board = await Board.findById(boardId);
 
   if (!board) {
     return next(new ErrorHandler("Board not found", 404));
+  }
+
+  const edit = {
+    title: req.body.title,
+    description: req.body.descriptions,
+    watch: req.body.watch,
+    startDate: req.body.startDate,
+    dueDate: req.body.dueDate,
+    startDateReminder: req.body.startDateReminder,
+    dueDateReminder: req.body.dueDateReminder,
+  };
+
+  const card = await Card.findByIdAndUpdate(cardId, edit, { new: true });
+  if (!card) {
+    return next(new ErrorHandler("Card does not exist", 404));
+  }
+  res.status(200).json({ success: true, card });
+});
+
+exports.addMembersToCard = catchAsyncErrors(async (req, res, next) => {
+  const { cardId, boardId } = req.params;
+  if (!cardId || !boardId) {
+    return next(new ErrorHandler("Parameters not Specified", 400));
+  }
+
+  const board = await Board.findById(boardId);
+
+  if (!board) {
+    return next(new ErrorHandler("Board not found", 404));
+  }
+
+  const card = await Card.findById(cardId);
+  if (!card) {
+    return next(new ErrorHandler("Card does not exist", 404));
   }
 
   const { users } = req.body;
@@ -349,23 +387,24 @@ exports.editCard = catchAsyncErrors(async (req, res, next) => {
     }
   }
 
-  const edit = {
-    title: req.body.title,
-    description: req.body.descriptions,
-    watch: req.body.watch,
-    startDate: req.body.startDate,
-    dueDate: req.body.dueDate,
-    startDateReminder: req.body.startDateReminder,
-    dueDateReminder: req.body.dueDateReminder,
-    members: selectedUsers,
-  };
+  for (let i = 0; i < selectedUsers.length; i++) {
+    const selected = selectedUsers[i];
 
-  const card = await Card.findByIdAndUpdate(cardId, edit, { new: true });
-  if (!card) {
-    return next(new ErrorHandler("Card does not exist", 404));
+    const exist = card.members.find(
+      (e) => e._id.toString() === selected._id.toString()
+    );
+
+    if (exist) {
+      return next(new ErrorHandler(`User ${selected} already exists in card`, 400));
+    }
   }
-  res.status(200).json({ success: true, card });
+
+  card.members.push(...selectedUsers);
+  await card.save();
+
+  res.status(200).json({ success: true, message: "User(s) added to card" });
 });
+
 
 exports.removeMemberFromCard = catchAsyncErrors(async (req, res, next) => {
   const { cardId } = req.params;
@@ -596,15 +635,19 @@ exports.editChecklistContent = catchAsyncErrors(async (req, res, next) => {
 exports.addMembersToContent = catchAsyncErrors(async (req, res, next) => {
   const { cardId, checklistId, contentId } = req.params;
 
-  if (!cardId || !checklistId || !contentId)
+  if (!cardId || !checklistId || !contentId) {
     return next(new ErrorHandler("IDs not specified", 400));
+  }
 
   const card = await Card.findById(cardId);
-  if (!card) return next(new ErrorHandler("Card not found", 404));
+  if (!card) {
+    return next(new ErrorHandler("Card not found", 404));
+  }
 
   const checklist = await Checklist.findById(checklistId);
-
-  if (!checklist) return next(new ErrorHandler("Checklist not found", 404));
+  if (!checklist) {
+    return next(new ErrorHandler("Checklist not found", 404));
+  }
 
   const contentIndex = checklist.content.findIndex(
     (content) => content._id.toString() === contentId
@@ -613,8 +656,9 @@ exports.addMembersToContent = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Content not found", 404));
   }
 
-  if (card.createdBy._id.toString() !== req.user._id.toString())
+  if (card.createdBy._id.toString() !== req.user._id.toString()) {
     return next(new ErrorHandler("Unauthorized", 401));
+  }
 
   const { users } = req.body;
 
@@ -626,12 +670,22 @@ exports.addMembersToContent = catchAsyncErrors(async (req, res, next) => {
     for (let i = 0; i < members.length; i++) {
       const member = members[i];
 
-      const memberExists = card.members.find(
+      const memberExists = checklist.content[contentIndex].addMembers.find(
         (user) => user._id.toString() === member
       );
 
       if (memberExists) {
-        selectedUsers.push(memberExists);
+        return next(
+          new ErrorHandler(`User ${member} already exists in the content`, 400)
+        );
+      }
+
+      const cardMember = card.members.find(
+        (user) => user._id.toString() === member
+      );
+
+      if (cardMember) {
+        selectedUsers.push(cardMember);
       } else {
         return next(
           new ErrorHandler(`User ${member} is not a member of the card`, 400)
@@ -639,62 +693,69 @@ exports.addMembersToContent = catchAsyncErrors(async (req, res, next) => {
       }
     }
   }
-  checklist.content[contentIndex].addMembers =
-    selectedUsers || checklist.content[contentIndex].addMembers;
+
+  checklist.content[contentIndex].addMembers = [
+    ...checklist.content[contentIndex].addMembers,
+    ...selectedUsers,
+  ];
 
   await checklist.save();
 
   res.status(200).json({
     success: true,
-    message: "Member(s) Added Successfully",
+    message: "Member(s) added successfully",
   });
 });
-// TODO: Fix this
+
 exports.removeMemberFromContent = catchAsyncErrors(async (req, res, next) => {
   const { cardId, checklistId, contentId } = req.params;
 
-  if (!cardId || !checklistId || !contentId)
+  if (!cardId || !checklistId || !contentId) {
     return next(new ErrorHandler("IDs not specified", 400));
+  }
 
   const card = await Card.findById(cardId);
-  if (!card) return next(new ErrorHandler("Card not found", 404));
+  if (!card) {
+    return next(new ErrorHandler("Card not found", 404));
+  }
 
   const checklist = await Checklist.findById(checklistId);
-
-  if (!checklist) return next(new ErrorHandler("Checklist not found", 404));
+  if (!checklist) {
+    return next(new ErrorHandler("Checklist not found", 404));
+  }
 
   const contentIndex = checklist.content.findIndex(
     (content) => content._id.toString() === contentId
   );
+
   if (contentIndex === -1) {
     return next(new ErrorHandler("Content not found", 404));
   }
+
   const { users } = req.body;
-   const members = JSON.parse(users);
-  const selectedUsers = [];
-  if (card.createdBy._id.toString() !== req.user._id.toString())
+  const members = JSON.parse(users);
+
+  if (card.createdBy._id.toString() !== req.user._id.toString()) {
     return next(new ErrorHandler("Unauthorized", 401));
+  }
 
   for (let i = 0; i < members.length; i++) {
     const member = members[i];
-
     const memberExists = checklist.content[contentIndex].addMembers.find(
       (user) => user._id.toString() === member
     );
 
-    if (memberExists) {
-      selectedUsers.push(memberExists);
-    } else {
-      return next(
-        new ErrorHandler(`User ${member} is not a member of the content`, 400)
-      );
+    if (!memberExists) {
+      return next(new ErrorHandler(`User ${member} not found`, 404));
     }
+
+    checklist.content[contentIndex].addMembers.splice(
+      checklist.content[contentIndex].addMembers.indexOf(memberExists),
+      1
+    );
   }
 
-  selectedUsers.forEach((user) => {
-    checklist.content[contentIndex].addMembers.pull(user);
-  });
-
+  await checklist.save();
   await card.save();
 
   res.status(200).json({
@@ -702,7 +763,6 @@ exports.removeMemberFromContent = catchAsyncErrors(async (req, res, next) => {
     message: "Member(s) removed from content successfully",
   });
 });
-
 
 exports.onComplete = catchAsyncErrors(async (req, res, next) => {
   const { cardId, checklistId, contentId } = req.params;
