@@ -214,7 +214,10 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Email and Mobile Number not verified", 401));
   }
 
-  user.getJWTToken();
+  user.refreshToken = user.getRefreshToken();
+  user.save();
+  user.getAccessToken();
+
   sendToken(user, 200, res);
 });
 
@@ -625,6 +628,25 @@ exports.deactivateAccount = catchAsyncErrors(async (req, res, next) => {
   res
     .status(200)
     .json({ success: true, message: "Account Deactivated Successfully" });
+});
+
+exports.refreshToken = catchAsyncErrors(async (req, res, next) => {
+  const cookies = req.cookies;
+  if (!cookies?.refreshToken)
+    return next(new ErrorHandler("No Cookie present", 401));
+
+  const refreshToken = cookies.refreshToken;
+  const user = await User.findOne({ refreshToken: refreshToken });
+  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
+    if (err || user._id.toString() !== decoded.id)
+      return next(new ErrorHandler("User not found", 401));
+    const accessToken = jwt.sign(
+      { id: decoded.id },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: process.env.ACCESS_TOKEN_EXPIRE }
+    );
+    res.json({ accessToken });
+  });
 });
 
 async function unverifyUserIfEmailAndMobileNotVerified(userId) {

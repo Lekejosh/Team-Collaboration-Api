@@ -1,5 +1,6 @@
 const sendToken = (user, statusCode, res) => {
-  const token = user.getJWTToken();
+  const refreshToken = user.getRefreshToken();
+  const accessToken = user.getAccessToken();
 
   //Option for cookie
   const options = {
@@ -8,10 +9,15 @@ const sendToken = (user, statusCode, res) => {
     ),
     httpOnly: true,
   };
-  res.status(statusCode).cookie("token", token, options).json({
-    success: true,
-    user,
-    token,
-  });
+  res
+    .cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    })
+    .json({
+      success: true,
+      user,
+      accessToken,
+    });
 };
 module.exports = sendToken;

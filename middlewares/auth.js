@@ -4,12 +4,14 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 
 exports.isAuthenticatedUser = catchAsyncErrors(async (req, res, next) => {
-  const { token } = req.cookies;
+  const authHeader = req.headers["authorization"];
 
-  if (!token) {
+  if (!authHeader) {
     return next(new ErrorHandler("Please Login to access this resource", 401));
   }
-  const decodedData = jwt.verify(token, process.env.JWT_SECRET);
+  const token = authHeader.split(" ")[1];
+  const decodedData = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
   req.user = await User.findById(decodedData.id);
   next();
 });
@@ -31,12 +33,10 @@ exports.authorizeRole = (...roles) => {
 exports.checkDeactivated = catchAsyncErrors(async (req, res, next) => {
   const user = req.user;
   if (user.isDeactivated) {
-    return res
-      .status(403)
-      .json({
-        success: false,
-        message: "Your account is deactivated, Contact Support to Activate it",
-      });
+    return res.status(403).json({
+      success: false,
+      message: "Your account is deactivated, Contact Support to Activate it",
+    });
   }
   next();
 });

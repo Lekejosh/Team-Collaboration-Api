@@ -82,6 +82,7 @@ const userSchema = new mongoose.Schema(
       required: true,
       default: false,
     },
+    refreshToken:String,
     generatedOtp: String,
     resetPasswordToken: String,
     resetPasswordExpire: Date,
@@ -104,19 +105,16 @@ userSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(this.password, 10);
 });
 
-userSchema.methods.getJWTToken = function () {
-  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
+userSchema.methods.getAccessToken = function () {
+  return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: process.env.ACCESS_TOKEN_EXPIRE,
   });
 };
-// userSchema.methods.getRefreshToken = function () {
-//   const refreshToken = crypto.randomBytes(20).toString("hex");
-//   this.refreshToken = crypto
-//     .createHash("sha256")
-//     .update(refreshToken)
-//     .digest("hex");
-//   return refreshToken;
-// };
+userSchema.methods.getRefreshToken = function () {
+  return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRE,
+  });
+};
 userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

@@ -395,16 +395,24 @@ exports.addMembersToCard = catchAsyncErrors(async (req, res, next) => {
     );
 
     if (exist) {
-      return next(new ErrorHandler(`User ${selected} already exists in card`, 400));
+      return next(
+        new ErrorHandler(`User ${selected} already exists in card`, 400)
+      );
     }
   }
 
   card.members.push(...selectedUsers);
   await card.save();
-
+  for (let i = 0; i < selectedUsers.length; i++) {
+    const user = await User.findById(selectedUsers[i]);
+    await sendEmail({
+      email: `${user.username} <$user.email>`,
+      subject: "Added to Card",
+      html: `Dear <b>${user.lastName} ${user.firstName}</b>, \n\n\n\n You've been added to <b>Card</b> Task Board`,
+    });
+  }
   res.status(200).json({ success: true, message: "User(s) added to card" });
 });
-
 
 exports.removeMemberFromCard = catchAsyncErrors(async (req, res, next) => {
   const { cardId } = req.params;
