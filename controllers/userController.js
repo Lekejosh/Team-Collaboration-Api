@@ -446,11 +446,20 @@ exports.updateEmail = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.logoutUser = catchAsyncErrors(async (req, res, next) => {
-  res.cookie("token", null, {
-    expires: new Date(Date.now()),
+  const refreshToken = req.cookies.refreshToken;
+  if (!refreshToken)
+    return next(new ErrorHandler("Refresh token not present", 400));
+  res.clearCookie("refreshToken", {
     httpOnly: true,
+    // secure: process.env.NODE_ENV === "production",
+    // sameSite: "strict",
   });
-  res.status(200).json({ success: true });
+  const user = await User.findOne({ refreshToken: refreshToken });
+  if (!user)
+    return next(new ErrorHandler("User not found or already logged out", 404));
+  user.refreshToken = undefined;
+  await user.save();
+  res.status(200).json({ success: true, message: "Logged out successfully" });
 });
 
 exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
