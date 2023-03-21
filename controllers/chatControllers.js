@@ -55,7 +55,7 @@ exports.fetchChats = catchAsyncErrors(async (req, res, next) => {
           path: "latestMessage.sender",
           select: "name avatar email",
         });
-        res.status(200).send(results);
+        res.status(200).send({success:true,data:results});
       });
   } catch (error) {
     res.status(400);
@@ -91,7 +91,7 @@ exports.createGroupChat = catchAsyncErrors(async (req, res, next) => {
       .populate("users", "-password")
       .populate("groupAdmin", "-password");
 
-    res.status(200).json(fullGroupChat);
+    res.status(200).json({success:true,message:"Created",data:fullGroupChat});
   } catch (error) {
     return next(new ErrorHandler("Unable to creat Group chat", 400));
   }
@@ -113,9 +113,9 @@ exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
     .populate("groupAdmin", "-password");
 
   if (!updateChat) {
-    return next(new ErrorHandler("Chat Not Found"));
+    return next(new ErrorHandler("Chat Not Found",404));
   }
-  res.status(200).json(updateChat);
+  res.status(200).json({success: true,message:"Updated"});
 });
 
 exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
@@ -145,7 +145,7 @@ exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
     .populate("users", "-password")
     .populate("groupAdmin", "-password");
 
-  res.status(200).json(added);
+  res.status(200).json({success:true,message:"User(s) added successfully"});
 });
 
 
@@ -175,5 +175,5 @@ exports.removeFromGroup = catchAsyncErrors(async (req, res, next) => {
     .populate("users", "-password")
     .populate("groupAdmin", "-password");
 
-  res.status(200).json(removed);
+  res.status(200).json({succes:true, message:"User(s) removed successfully"});
 });
