@@ -169,6 +169,8 @@ exports.verifyMobileAndEmailOTP = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.login = catchAsyncErrors(async (req, res, next) => {
+  const cookies = req.cookies;
+  console.log("Cookie available at login: ", cookies);
   const { emailName, password, twoFactorPin } = req.body;
 
   if (!emailName || !password) {
@@ -214,8 +216,30 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Email and Mobile Number not verified", 401));
   }
 
-  user.refreshToken = user.getRefreshToken();
+  const newRefreshToken = jwt.sign(
+    { id: user._id },
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRE }
+  );
+
+  const newRefreshTokenArray = !cookies?.refreshToken
+    ? user.refreshToken
+    : user.refreshToken.filter((rt) => rt !== cookies.refreshToken);
+  if (!cookies) return next(new ErrorHandler("Refresh token not present", 400));
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    // secure: true,
+    // sameSite: "None",
+  });
+  user.refreshToken = [...newRefreshTokenArray, newRefreshToken];
   user.save();
+  res.cookie("refreshToken", newRefreshToken, {
+    httpOnly: true,
+    // sameSite: "none",
+    // secure: true,
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+
   user.getAccessToken();
 
   sendToken(user, 200, res);
@@ -451,13 +475,15 @@ exports.logoutUser = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Refresh token not present", 400));
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    // secure: process.env.NODE_ENV === "production",
-    // sameSite: "strict",
+    // secure: true,
+    // sameSite: "None",
   });
   const user = await User.findOne({ refreshToken: refreshToken });
   if (!user)
     return next(new ErrorHandler("User not found or already logged out", 404));
-  user.refreshToken = undefined;
+
+  user.refreshToken = user.refreshToken.filter((re) => re !== refreshToken);
+
   await user.save();
   res.status(200).json({ success: true, message: "Logged out successfully" });
 });
@@ -641,21 +667,73 @@ exports.deactivateAccount = catchAsyncErrors(async (req, res, next) => {
 
 exports.refreshToken = catchAsyncErrors(async (req, res, next) => {
   const cookies = req.cookies;
-  if (!cookies?.refreshToken)
+  if (!cookies?.refreshToken) {
     return next(new ErrorHandler("No Cookie present", 401));
+  }
 
   const refreshToken = cookies.refreshToken;
-  const user = await User.findOne({ refreshToken: refreshToken });
-  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
-    if (err || user._id.toString() !== decoded.id)
-      return next(new ErrorHandler("User not found", 401));
-    const accessToken = jwt.sign(
-      { id: decoded.id },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: process.env.ACCESS_TOKEN_EXPIRE }
-    );
-    res.json({ accessToken });
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    // sameSite: "none",
+    // secure: true,
   });
+
+  const user = await User.findOne({ refreshToken: refreshToken });
+  if (!user) {
+    jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET,
+      async (err, decoded) => {
+        if (err) {
+          return next(new ErrorHandler("Forbidden", 403));
+        }
+        console.log("Attempted Refresh token reuse");
+        const hackedUser = await User.findById(decoded.id);
+        hackedUser.refreshToken = [];
+        await hackedUser.save();
+        return next(new ErrorHandler("Forbidden", 403));
+      }
+    );
+  } else {
+    const newRefresTokenArray = user.refreshToken.filter(
+      (rt) => rt !== refreshToken
+    );
+
+    jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET,
+      async (err, decoded) => {
+       
+        user.refreshToken = [...newRefresTokenArray];
+        const result = await user.save();
+        console.log(result);
+        if (err || user._id.toString() !== decoded.id) {
+          return next(new ErrorHandler("Forbidden", 403));
+        }
+
+        const accessToken = jwt.sign(
+          { id: decoded.id },
+          process.env.ACCESS_TOKEN_SECRET,
+          { expiresIn: process.env.ACCESS_TOKEN_EXPIRE }
+        );
+
+        const newRefreshToken = jwt.sign(
+          { id: user._id },
+          process.env.REFRESH_TOKEN_SECRET,
+          { expiresIn: process.env.REFRESH_TOKEN_EXPIRE }
+        );
+        user.refreshToken = [...newRefresTokenArray, newRefreshToken];
+        await user.save();
+        res.cookie("refreshToken", newRefreshToken, {
+          httpOnly: true,
+          // sameSite: "none",
+          // secure: true,
+          maxAge: 24 * 60 * 60 * 1000,
+        });
+        res.json({ accessToken });
+      }
+    );
+  }
 });
 
 async function unverifyUserIfEmailAndMobileNotVerified(userId) {

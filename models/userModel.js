@@ -82,7 +82,7 @@ const userSchema = new mongoose.Schema(
       required: true,
       default: false,
     },
-    refreshToken:String,
+    refreshToken:[String],
     generatedOtp: String,
     resetPasswordToken: String,
     resetPasswordExpire: Date,
@@ -110,11 +110,11 @@ userSchema.methods.getAccessToken = function () {
     expiresIn: process.env.ACCESS_TOKEN_EXPIRE,
   });
 };
-userSchema.methods.getRefreshToken = function () {
-  return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN_SECRET, {
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRE,
-  });
-};
+// userSchema.methods.getRefreshToken = function () {
+//   return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN_SECRET, {
+//     expiresIn: process.env.REFRESH_TOKEN_EXPIRE,
+//   });
+// };
 userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

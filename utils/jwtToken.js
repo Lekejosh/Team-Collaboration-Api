@@ -1,5 +1,5 @@
 const sendToken = (user, statusCode, res) => {
-  const refreshToken = user.getRefreshToken();
+  // const refreshToken = user.getRefreshToken();
   const accessToken = user.getAccessToken();
 
   //Option for cookie
@@ -10,10 +10,10 @@ const sendToken = (user, statusCode, res) => {
     httpOnly: true,
   };
   res
-    .cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
-    })
+    // .cookie("refreshToken", refreshToken, {
+    //   httpOnly: true,
+    //   maxAge: 24 * 60 * 60 * 1000,
+    // })
     .json({
       success: true,
       user,

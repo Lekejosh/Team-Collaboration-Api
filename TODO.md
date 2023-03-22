@@ -1,10 +1,10 @@
 # TODOs
 
-[x] Logout route ✔
-[x] Change Password ✔
-[x] Reset Password ✔
-[x] Email Verification ✔
-[x] Upload Avatar ✔
+* Logout route ✔
+* Change Password ✔
+* Reset Password ✔
+* Email Verification ✔
+* Upload Avatar ✔
 * Update Avatar ✔
 * File Sharing ✔
 * Voice Note ✔
