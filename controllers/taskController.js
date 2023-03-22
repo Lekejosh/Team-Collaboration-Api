@@ -318,7 +318,7 @@ exports.createCard = catchAsyncErrors(async (req, res, next) => {
   task.cards.push(card._id);
   await task.save();
 
-  res.status(200).json({ success: true, card });
+  res.status(200).json({ success: true, message: "Created", data: card });
 });
 
 exports.editCard = catchAsyncErrors(async (req, res, next) => {
@@ -348,7 +348,7 @@ exports.editCard = catchAsyncErrors(async (req, res, next) => {
   if (!card) {
     return next(new ErrorHandler("Card does not exist", 404));
   }
-  res.status(200).json({ success: true, card });
+  res.status(200).json({ success: true, message: "Updated", data: card });
 });
 
 exports.addMembersToCard = catchAsyncErrors(async (req, res, next) => {
@@ -407,8 +407,8 @@ exports.addMembersToCard = catchAsyncErrors(async (req, res, next) => {
     const user = await User.findById(selectedUsers[i]);
     await sendEmail({
       email: `${user.username} <$user.email>`,
-      subject: "Added to Card",
-      html: `Dear <b>${user.lastName} ${user.firstName}</b>, \n\n\n\n You've been added to <b>Card</b> Task Board`,
+      subject: "Assigned to Card",
+      html: `Dear <b>${user.lastName} ${user.firstName}</b>, \n\n\n\n You've been assigned to <b>Card</b> Task Board`,
     });
   }
   res.status(200).json({ success: true, message: "User(s) added to card" });
@@ -444,6 +444,15 @@ exports.removeMemberFromCard = catchAsyncErrors(async (req, res, next) => {
       );
     }
   }
+
+   for (let i = 0; i < memberExists.length; i++) {
+     const user = await User.findById(memberExists[i]);
+     await sendEmail({
+       email: `${user.username} <$user.email>`,
+       subject: "Unassigned from Card",
+       html: `Dear <b>${user.lastName} ${user.firstName}</b>, \n\n\n\n You've been unassigned from <b>Card</b> Task Board`,
+     });
+   }
 
   await card.save();
 
