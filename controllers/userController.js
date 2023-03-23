@@ -170,7 +170,6 @@ exports.verifyMobileAndEmailOTP = catchAsyncErrors(async (req, res, next) => {
 
 exports.login = catchAsyncErrors(async (req, res, next) => {
   const cookies = req.cookies;
-  console.log("Cookie available at login: ", cookies);
   const { emailName, password, twoFactorPin } = req.body;
 
   if (!emailName || !password) {
@@ -687,7 +686,6 @@ exports.refreshToken = catchAsyncErrors(async (req, res, next) => {
         if (err) {
           return next(new ErrorHandler("Forbidden", 403));
         }
-        console.log("Attempted Refresh token reuse");
         const hackedUser = await User.findById(decoded.id);
         hackedUser.refreshToken = [];
         await hackedUser.save();
@@ -706,7 +704,6 @@ exports.refreshToken = catchAsyncErrors(async (req, res, next) => {
        
         user.refreshToken = [...newRefresTokenArray];
         const result = await user.save();
-        console.log(result);
         if (err || user._id.toString() !== decoded.id) {
           return next(new ErrorHandler("Forbidden", 403));
         }
