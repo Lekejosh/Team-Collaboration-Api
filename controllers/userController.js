@@ -221,9 +221,19 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
     { expiresIn: process.env.REFRESH_TOKEN_EXPIRE }
   );
 
-  const newRefreshTokenArray = !cookies?.refreshToken
+  let newRefreshTokenArray = !cookies?.refreshToken
     ? user.refreshToken
     : user.refreshToken.filter((rt) => rt !== cookies.refreshToken);
+
+  if (cookies.refreshToken) {
+    const refreshToken = cookies.refreshToken;
+    const foundToken = await User.findOne({ refreshToken });
+    if (!foundToken) {
+      console.log("Refresh token reuse");
+      newRefreshTokenArray = [];
+    }
+  }
+
   if (!cookies) return next(new ErrorHandler("Refresh token not present", 400));
   res.clearCookie("refreshToken", {
     httpOnly: true,
@@ -701,7 +711,6 @@ exports.refreshToken = catchAsyncErrors(async (req, res, next) => {
       refreshToken,
       process.env.REFRESH_TOKEN_SECRET,
       async (err, decoded) => {
-       
         user.refreshToken = [...newRefresTokenArray];
         const result = await user.save();
         if (err || user._id.toString() !== decoded.id) {
