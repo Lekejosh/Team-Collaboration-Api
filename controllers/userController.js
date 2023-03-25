@@ -64,7 +64,24 @@ exports.register = catchAsyncErrors(async (req, res, next) => {
     avatar,
   });
 
-  sendToken(user, 201, res);
+  const newRefreshToken = jwt.sign(
+    { id: user._id },
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRE }
+  );
+
+  user.refreshToken = [newRefreshToken];
+  user.save();
+  res.cookie("refreshToken", newRefreshToken, {
+    httpOnly: true,
+    // sameSite: "none",
+    // secure: true,
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+
+  user.getAccessToken();
+
+  sendToken(user, 200, res);
 });
 
 exports.generateMailOTP = catchAsyncErrors(async (req, res, next) => {
@@ -740,6 +757,16 @@ exports.refreshToken = catchAsyncErrors(async (req, res, next) => {
       }
     );
   }
+});
+
+exports.deleteAccount = catchAsyncErrors(async (req, res, next) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) return next(new ErrorHandler("User not found", 404));
+
+  user.remove();
+
+  res.status(200).json({ success: true, message: "Successfully deleted" });
 });
 
 async function unverifyUserIfEmailAndMobileNotVerified(userId) {
