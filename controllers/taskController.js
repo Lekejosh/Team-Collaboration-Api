@@ -304,6 +304,8 @@ exports.deleteTask = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true });
 });
 
+//TODO: Get single and all Cards
+
 exports.createCard = catchAsyncErrors(async (req, res, next) => {
   const { title } = req.body;
   const { id } = req.params;
@@ -491,7 +493,6 @@ exports.deleteCard = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true });
 });
 
-exports.members = catchAsyncErrors;
 
 exports.createChecklists = catchAsyncErrors(async (req, res, next) => {
   const { cardId } = req.params;
