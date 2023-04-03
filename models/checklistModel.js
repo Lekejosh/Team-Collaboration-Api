@@ -32,7 +32,7 @@ const checklistSchema = new mongoose.Schema({
       },
       reminded: {
         type: Boolean,
-        default:false
+        default: false,
       },
       dueDate: {
         type: Date,
@@ -46,6 +46,9 @@ const checklistSchema = new mongoose.Schema({
           time: {
             type: Date,
           },
+          comment: {
+            type: String,
+          },
         },
       ],
     },
@@ -58,6 +61,9 @@ const checklistSchema = new mongoose.Schema({
       },
       time: {
         type: Date,
+      },
+      comment: {
+        type: String,
       },
     },
   ],

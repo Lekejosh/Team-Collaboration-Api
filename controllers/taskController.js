@@ -571,6 +571,18 @@ exports.addChecklistContent = catchAsyncErrors(async (req, res, next) => {
     startDate,
     isCompleted: false,
     addMembers: selectedUsers,
+    lastEditedBy: [
+      {
+        user: req.user._id,
+        time: Date.now,
+        comment: "Created This Task",
+      },
+    ],
+  });
+  checklist.lastEditedBy.unshift({
+    user: req.user._id,
+    time: Date.now(),
+    comment: `Created Task: ${title}`,
   });
 
   // Update totalCompleted property for completed tasks
@@ -641,6 +653,16 @@ exports.editChecklistContent = catchAsyncErrors(async (req, res, next) => {
   checklist.content[contentIndex].dueDate =
     dueDate || checklist.content[contentIndex].dueDate;
 
+  checklist.content[contentIndex].lastEditedBy.unshift({
+    user: req.user._id,
+    time: Date.now(),
+    comment: "Edited the Content",
+  });
+  checklist.lastEditedBy.unshift({
+    user: req.user._id,
+    time: Date.now(),
+    comment: `Edited Task: ${checklist.content[contentIndex].title}`,
+  });
   await checklist.save();
 
   res.status(200).json({
@@ -715,6 +737,16 @@ exports.addMembersToContent = catchAsyncErrors(async (req, res, next) => {
     ...checklist.content[contentIndex].addMembers,
     ...selectedUsers,
   ];
+  checklist.content[contentIndex].lastEditedBy.unshift({
+    user: req.user._id,
+    time: Date.now(),
+    comment: "Added Member",
+  });
+  checklist.lastEditedBy.unshift({
+    user: req.user._id,
+    time: Date.now(),
+    comment: `Added Member to Task: ${checklist.content[contentIndex].title}`,
+  });
 
   await checklist.save();
 
@@ -770,6 +802,16 @@ exports.removeMemberFromContent = catchAsyncErrors(async (req, res, next) => {
       checklist.content[contentIndex].addMembers.indexOf(memberExists),
       1
     );
+    checklist.content[contentIndex].lastEditedBy.unshift({
+      user: req.user._id,
+      time: Date.now(),
+      comment: "Removed Member",
+    });
+    checklist.lastEditedBy.unshift({
+      user: req.user._id,
+      time: Date.now(),
+      comment: `Removed Member from Task: ${checklist.content[contentIndex].title}`,
+    });
   }
 
   await checklist.save();
@@ -808,11 +850,16 @@ exports.onComplete = catchAsyncErrors(async (req, res, next) => {
       userExist ||
       card.createdBy._id.toString() === req.user._id.toString()
     ) {
-      checklist.content[contentIndex].isCompleted =
-        complete || checklist.content[contentIndex].isCompleted;
+      checklist.content[contentIndex].isCompleted = complete;
       checklist.content[contentIndex].lastEditedBy.unshift({
         user: req.user._id,
         time: Date.now(),
+        comment: "Updated Task Completion",
+      });
+      checklist.lastEditedBy.unshift({
+        user: req.user._id,
+        time: Date.now(),
+        comment: `Updated Task: ${checklist.content[contentIndex].title}, Completion`,
       });
       await checklist.save();
       await updateTotalCompleted(checklistId);
@@ -867,7 +914,16 @@ exports.deleteChecklistContent = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Unauthorized", 401));
   } else {
     checklist.content.splice(contentIndex, 1);
-
+    checklist.content[contentIndex].lastEditedBy.unshift({
+      user: req.user._id,
+      time: Date.now(),
+      comment: "Delete a Task",
+    });
+    checklist.lastEditedBy.unshift({
+      user: req.user._id,
+      time: Date.now(),
+      comment: `Deleted a Task: ${checklist.content[contentIndex].title}, Completion`,
+    });
     await checklist.save();
     await updateTotalCompleted(checklistId);
     res.status(200).json({ success: true });
