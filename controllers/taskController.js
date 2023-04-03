@@ -574,7 +574,7 @@ exports.addChecklistContent = catchAsyncErrors(async (req, res, next) => {
     lastEditedBy: [
       {
         user: req.user._id,
-        time: Date.now,
+        time: Date.now(),
         comment: "Created This Task",
       },
     ],
