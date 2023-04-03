@@ -61,7 +61,7 @@ router
 
 //Card
 router
-  .route("/card/:id")
+  .route("/card/:taskId")
   .post(isAuthenticatedUser, checkDeactivated, createCard);
 router
   .route("/card/edit/:cardId/:boardId")

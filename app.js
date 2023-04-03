@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const bodyParser = require("body-parser");
 const cors = require('cors')
+const checkDue = require('./middlewares/serviceWorker')
 // const io = require('socket.io')(server,{
 //     cors: {
 //         origin: '*'
@@ -17,6 +18,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
+// setInterval(checkDue, 60 * 1000);
+setInterval(checkDue, 60 * 1000);
 
 const user = require('./routes/userRoute')
 const chat = require('./routes/chatRoute')

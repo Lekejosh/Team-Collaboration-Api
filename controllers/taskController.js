@@ -77,7 +77,7 @@ exports.createBoard = catchAsyncErrors(async (req, res, next) => {
   for (let i = 0; i < selectedUsers.length; i++) {
     const user = await User.findById(selectedUsers[i]);
     await sendEmail({
-      email: `${user.username} <$user.email>`,
+      email: `${user.username} <${user.email}>`,
       subject: "Added to Board",
       html: `Dear <b>${user.lastName} ${user.firstName}</b>, \n\n\n\n You've been added to <b>${group.chatName}'s</b> Task Board`,
     });
@@ -126,7 +126,7 @@ exports.removeMemberFromBoard = catchAsyncErrors(async (req, res, next) => {
   for (let i = 0; i < members.length; i++) {
     const user = await User.findById(members[i]);
     await sendEmail({
-      email: `${user.username} <$user.email>`,
+      email: `${user.username} <${user.email}>`,
       subject: "Removed From Board",
       html: `Dear <b>${user.lastName} ${user.firstName}</b>, \n\n\n\n You've been added to <b>${board.group.chatName}'s</b> Task Board`,
     });
@@ -308,9 +308,9 @@ exports.deleteTask = catchAsyncErrors(async (req, res, next) => {
 
 exports.createCard = catchAsyncErrors(async (req, res, next) => {
   const { title } = req.body;
-  const { id } = req.params;
+  const { taskId } = req.params;
 
-  const task = await Task.findById(id);
+  const task = await Task.findById(taskId);
 
   if (!task) {
     return next(new ErrorHandler("Task not found", 404));
@@ -408,7 +408,7 @@ exports.addMembersToCard = catchAsyncErrors(async (req, res, next) => {
   for (let i = 0; i < selectedUsers.length; i++) {
     const user = await User.findById(selectedUsers[i]);
     await sendEmail({
-      email: `${user.username} <$user.email>`,
+      email: `${user.username} <${user.email}>`,
       subject: "Assigned to Card",
       html: `Dear <b>${user.lastName} ${user.firstName}</b>, \n\n\n\n You've been assigned to <b>Card</b> Task Board`,
     });
@@ -447,14 +447,14 @@ exports.removeMemberFromCard = catchAsyncErrors(async (req, res, next) => {
     }
   }
 
-   for (let i = 0; i < memberExists.length; i++) {
-     const user = await User.findById(memberExists[i]);
-     await sendEmail({
-       email: `${user.username} <$user.email>`,
-       subject: "Unassigned from Card",
-       html: `Dear <b>${user.lastName} ${user.firstName}</b>, \n\n\n\n You've been unassigned from <b>Card</b> Task Board`,
-     });
-   }
+  for (let i = 0; i < memberExists.length; i++) {
+    const user = await User.findById(memberExists[i]);
+    await sendEmail({
+      email: `${user.username} <${user.email}>`,
+      subject: "Unassigned from Card",
+      html: `Dear <b>${user.lastName} ${user.firstName}</b>, \n\n\n\n You've been unassigned from <b>Card</b> Task Board`,
+    });
+  }
 
   await card.save();
 
@@ -492,7 +492,6 @@ exports.deleteCard = catchAsyncErrors(async (req, res, next) => {
 
   res.status(200).json({ success: true });
 });
-
 
 exports.createChecklists = catchAsyncErrors(async (req, res, next) => {
   const { cardId } = req.params;
@@ -805,30 +804,24 @@ exports.onComplete = catchAsyncErrors(async (req, res, next) => {
     const userExist = checklist.content[contentIndex].addMembers.find(
       (user) => user._id.toString() === req.user._id.toString()
     );
-
     if (
       userExist ||
       card.createdBy._id.toString() === req.user._id.toString()
     ) {
       checklist.content[contentIndex].isCompleted =
         complete || checklist.content[contentIndex].isCompleted;
+      checklist.content[contentIndex].lastEditedBy.unshift({
+        user: req.user._id,
+        time: Date.now(),
+      });
       await checklist.save();
       await updateTotalCompleted(checklistId);
 
       return res.status(200).json({ success: true });
-    } else {
-      return next(new ErrorHandler("Unauthorized"));
     }
-  }
-
-  if (card.createdBy._id.toString() !== req.user._id.toString())
     return next(new ErrorHandler("Unauthorized"));
-  checklist.content[contentIndex].isCompleted =
-    complete || checklist.content[contentIndex].isCompleted;
-  await checklist.save();
-  await updateTotalCompleted(checklistId);
-
-  res.status(200).json({ success: true });
+  }
+  return next(new ErrorHandler("Unauthorized"));
 });
 
 exports.deleteChecklistContent = catchAsyncErrors(async (req, res, next) => {

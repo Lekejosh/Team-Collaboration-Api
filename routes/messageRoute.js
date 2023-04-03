@@ -15,7 +15,7 @@ const {
   deleteMessageFromEverybody,
 } = require("../controllers/messageController");
 const upload = require("../utils/audioMulter");
-const uploadImage = require("../utils/Multer");
+const uploadImage = require("../utils/multer");
 const uploadVideo = require("../utils/videoMullter");
 const uploadDocument = require("../utils/documentMulter");
 

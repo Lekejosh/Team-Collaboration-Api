@@ -24,11 +24,15 @@ const checklistSchema = new mongoose.Schema({
       addMembers: [
         {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "Users",
+          ref: "User",
         },
       ],
       startDate: {
         type: Date,
+      },
+      reminded: {
+        type: Boolean,
+        default:false
       },
       dueDate: {
         type: Date,
