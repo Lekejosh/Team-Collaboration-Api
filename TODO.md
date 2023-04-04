@@ -12,7 +12,7 @@
 * Deactivate Account ✔
 * Team Collaboration
 * Delete Message from self and everyone ✔
-* service worker that checks for incompleted task before due date and send message to the User assigned to it
+* service worker that checks for incompleted task before due date and send message to the User assigned to it ✔
 * Video and Audio call 
 * Live Audio Closed Captioning
 * ... More to add

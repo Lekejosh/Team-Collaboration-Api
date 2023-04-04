@@ -8,8 +8,6 @@ const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const ErrorHandler = require("../utils/errorHandler");
 const sendEmail = require("../utils/sendMail");
 
-//TODO: Add member to board
-
 exports.createBoard = catchAsyncErrors(async (req, res, next) => {
   const { groupId } = req.params;
 
@@ -48,7 +46,6 @@ exports.createBoard = catchAsyncErrors(async (req, res, next) => {
 
   const selectedUsers = [];
 
-  // Check if the specified members are in the group
   for (let i = 0; i < members.length; i++) {
     const member = members[i];
 
@@ -303,8 +300,6 @@ exports.deleteTask = catchAsyncErrors(async (req, res, next) => {
 
   res.status(200).json({ success: true });
 });
-
-//TODO: Get single and all Cards
 
 exports.createCard = catchAsyncErrors(async (req, res, next) => {
   const { title } = req.body;
