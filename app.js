@@ -4,8 +4,10 @@ const errorMiddleware = require("./middlewares/error");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const bodyParser = require("body-parser");
-const cors = require('cors')
 const checkDue = require('./middlewares/serviceWorker')
+const cors = require("cors");
+const credentials = require("./middlewares/credentials");
+const corsOptions = require("./config/corsOptions");
 // const io = require('socket.io')(server,{
 //     cors: {
 //         origin: '*'
@@ -13,7 +15,8 @@ const checkDue = require('./middlewares/serviceWorker')
 // });
 
 // io.on("Connection",(socket) => console.log("connected"))
-app.use(cors())
+app.use(credentials);
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

@@ -187,6 +187,7 @@ exports.verifyMobileAndEmailOTP = catchAsyncErrors(async (req, res, next) => {
 
 exports.login = catchAsyncErrors(async (req, res, next) => {
   const cookies = req.cookies;
+  console.log(req.body);
   const { emailName, password, twoFactorPin } = req.body;
 
   if (!emailName || !password) {
@@ -272,6 +273,7 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
+  console.log(req.body);
   const { emailName } = req.body;
 
   const user = await User.findOne({
@@ -291,8 +293,8 @@ exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
     user.save({ ValidateBeforeSave: false });
 
     const resetPasswordUrl = `${req.protocol}://${req.get(
-      "host"
-    )}/api/v1/user/password/reset/${resetToken}`;
+      "origin"
+    )}/password/${resetToken}`;
 
     const message = `Your password reset Token is :-\n\n ${resetPasswordUrl} \n\nif you have not requested this email then, please Ignore it`;
     try {
