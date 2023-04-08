@@ -84,6 +84,14 @@ exports.register = catchAsyncErrors(async (req, res, next) => {
   sendToken(user, 200, res);
 });
 
+exports.checkUser = catchAsyncErrors(async (req, res, next) => {
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return next(new ErrorHandler("No User Found", 404));
+  }
+  res.status(200).json({ success: true, user });
+});
+
 exports.generateMailOTP = catchAsyncErrors(async (req, res, next) => {
   const user = await User.findById(req.user._id);
 
@@ -187,7 +195,6 @@ exports.verifyMobileAndEmailOTP = catchAsyncErrors(async (req, res, next) => {
 
 exports.login = catchAsyncErrors(async (req, res, next) => {
   const cookies = req.cookies;
-  console.log(req.body);
   const { emailName, password, twoFactorPin } = req.body;
 
   if (!emailName || !password) {
@@ -229,9 +236,9 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
     }
   }
 
-  if (!user.isVerified) {
-    return next(new ErrorHandler("Email and Mobile Number not verified", 401));
-  }
+  // if (!user.isVerified) {
+  //   return next(new ErrorHandler("Email and Mobile Number not verified", 401));
+  // }
 
   const newRefreshToken = jwt.sign(
     { id: user._id },

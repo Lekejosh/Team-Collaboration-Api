@@ -25,11 +25,13 @@ const {
   deactivateAccount,
   refreshToken,
   deleteAccount,
+  checkUser,
 } = require("../controllers/userController");
 const upload = require("../utils/multer");
 
 router.route("/register").post(register);
 router.route("/login").post(login);
+router.route("/me").get(isAuthenticatedUser, checkUser);
 router.route("/logout").post(isAuthenticatedUser, checkDeactivated, logoutUser);
 router
   .route("/update/password")
@@ -71,7 +73,7 @@ router
 router.route("/qr/scan").post(scanQr);
 router.route("/").get(isAuthenticatedUser, checkDeactivated, allUsers);
 router.route("/deactivate").post(isAuthenticatedUser, deactivateAccount);
-router.route('/delete-account').delete(isAuthenticatedUser,deleteAccount)
-router.route('/refresh-token').get(refreshToken)
+router.route("/delete-account").delete(isAuthenticatedUser, deleteAccount);
+router.route("/refresh-token").get(refreshToken);
 
 module.exports = router;
