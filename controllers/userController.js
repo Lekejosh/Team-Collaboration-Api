@@ -301,7 +301,7 @@ exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
 
     const resetPasswordUrl = `${req.protocol}://${req.get(
       "origin"
-    )}/password/${resetToken}`;
+    )}/password/reset/${resetToken}`;
 
     const message = `Your password reset Token is :-\n\n ${resetPasswordUrl} \n\nif you have not requested this email then, please Ignore it`;
     try {
@@ -327,8 +327,8 @@ exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
     user.save({ ValidateBeforeSave: false });
 
     const resetPasswordUrl = `${req.protocol}://${req.get(
-      "host"
-    )}/api/v1/user/password/reset/${resetToken}`;
+      "origin"
+    )}/password/reset/${resetToken}`;
 
     const msg = `Your password reset Token is :-\n\n ${resetPasswordUrl} \n\nif you have not requested this email then, please Ignore it`;
     const payload = {
