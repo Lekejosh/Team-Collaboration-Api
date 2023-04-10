@@ -280,7 +280,6 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
-  console.log(req.body);
   const { emailName } = req.body;
 
   const user = await User.findOne({
