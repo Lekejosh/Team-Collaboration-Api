@@ -1,6 +1,6 @@
 const sendToken = (user, statusCode, res) => {
   // const refreshToken = user.getRefreshToken();
-  const accessToken = user.getAccessToken();
+  const token = user.getAccessToken();
 
   //Option for cookie
   const options = {
@@ -8,16 +8,13 @@ const sendToken = (user, statusCode, res) => {
       Date.now() + process.env.COOKIE_EXPIRE * 24 * 60 * 60 * 1000
     ),
     httpOnly: true,
+    // sameSite: "lax",
   };
-  res
-    // .cookie("refreshToken", refreshToken, {
-    //   httpOnly: true,
-    //   maxAge: 24 * 60 * 60 * 1000,
-    // })
-    .json({
-      success: true,
-      user,
-      accessToken,
-    });
+  res.status(statusCode).cookie("token", token, options).json({
+    success: true,
+    user,
+    token,
+  });
 };
+
 module.exports = sendToken;

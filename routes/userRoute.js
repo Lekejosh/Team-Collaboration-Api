@@ -23,7 +23,7 @@ const {
   resetPassword,
   updatePassword,
   deactivateAccount,
-  refreshToken,
+  // refreshToken,
   deleteAccount,
   checkUser,
 } = require("../controllers/userController");
@@ -74,6 +74,6 @@ router.route("/qr/scan").post(scanQr);
 router.route("/").get(isAuthenticatedUser, checkDeactivated, allUsers);
 router.route("/deactivate").post(isAuthenticatedUser, deactivateAccount);
 router.route("/delete-account").delete(isAuthenticatedUser, deleteAccount);
-router.route("/refresh-token").get(refreshToken);
+// router.route("/refresh-token").get(refreshToken);
 
 module.exports = router;

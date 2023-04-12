@@ -30,9 +30,9 @@ app.use(
 // io.on("Connection",(socket) => console.log("connected"))
 app.use(credentials);
 app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 // setInterval(checkDue, 60 * 1000);
 setInterval(checkDue, 60 * 1000);

@@ -82,7 +82,7 @@ const userSchema = new mongoose.Schema(
       required: true,
       default: false,
     },
-    refreshToken:[String],
+    // refreshToken:[String],
     generatedOtp: String,
     resetPasswordToken: String,
     resetPasswordExpire: Date,
@@ -106,8 +106,8 @@ userSchema.pre("save", async function (next) {
 });
 
 userSchema.methods.getAccessToken = function () {
-  return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: process.env.ACCESS_TOKEN_EXPIRE,
+  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE,
   });
 };
 // userSchema.methods.getRefreshToken = function () {
