@@ -1,3 +1,10 @@
+/*
+ ** Chat App Backend
+ ** Server.js
+ ** Created By Adeleke Joshua
+ ** 2/2023
+ */
+
 const app = require("./app");
 const mongoose = require("mongoose");
 const colors = require("colors");

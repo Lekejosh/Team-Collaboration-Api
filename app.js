@@ -1,3 +1,9 @@
+/*
+ ** App.js
+ ** Created By Adeleke Joshua
+ ** 2/2023
+ */
+
 const express = require("express");
 const app = express();
 const errorMiddleware = require("./middlewares/error");
