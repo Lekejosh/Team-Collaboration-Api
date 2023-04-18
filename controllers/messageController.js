@@ -7,8 +7,9 @@ const sendToken = require("../utils/jwtToken");
 const cloudinary = require("cloudinary");
 
 //TODO: Fix send document to support any type of document format
-
+//TODO: Group Admin to add and remove Group Icons
 exports.sendMessage = catchAsyncErrors(async (req, res, next) => {
+  console.log(req.body)
   const { content, chatId } = req.body;
 
   var newMessage = {
@@ -159,12 +160,16 @@ exports.allMessages = catchAsyncErrors(async (req, res, next) => {
       .populate("sender", "username avatar email")
       .populate("chat");
 
-    res.status(200).json(messages);
+    const chat = await Chat.findById(req.params.chatId).populate(
+      "users",
+      "username avatar"
+    );
+
+    res.status(200).json({ messages, chat });
   } catch (error) {
     return next(new ErrorHandler("Invalid request", 400));
   }
 });
-
 
 exports.deleteMessageFromSelf = catchAsyncErrors(async (req, res, next) => {
   const message = await Message.findOne({
