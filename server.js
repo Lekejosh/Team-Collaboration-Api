@@ -7,7 +7,7 @@
 
 const app = require("./app");
 const mongoose = require("mongoose");
-const colors = require("colors");
+require("colors");
 const cloudinary = require("cloudinary");
 require("dotenv").config();
 
@@ -32,12 +32,12 @@ const server = app.listen(process.env.PORT, () => {
 const io = require("socket.io")(server, {
   pingTimeout: 60000,
   cors: {
-    origin: "http://localhost:3000",
+    origin: "http://localhost:8080",
   },
 });
 
 io.on("connection", (socket) => {
-  console.log("Connected to Socket.io");
+  console.log(`${socket.id} Connected to Socket.io`);
 
   socket.on("setup", (userData) => {
     socket.join(userData._id);
@@ -64,7 +64,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("User Disconnected");
+    console.log(`${socket.id} disconnected`);
     socket.leaveAll();
   });
 });

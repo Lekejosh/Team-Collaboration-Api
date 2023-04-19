@@ -9,9 +9,11 @@ const cloudinary = require("cloudinary");
 //TODO: Fix send document to support any type of document format
 //TODO: Group Admin to add and remove Group Icons
 exports.sendMessage = catchAsyncErrors(async (req, res, next) => {
-  console.log(req.body)
+  console.log(req.body);
   const { content, chatId } = req.body;
-
+  if (!content) {
+    return console.log("No Content Provided");
+  }
   var newMessage = {
     sender: req.user._id,
     content: content,
