@@ -11,6 +11,7 @@ const {
   generateQr,
   scanQr,
   uploadAvatar,
+  removeAvatar,
   twoFactorAuth,
   generateMailOTP,
   generateMobileOTP,
@@ -48,7 +49,8 @@ router
     isAuthenticatedUser,
     checkDeactivated,
     uploadAvatar
-  );
+  )
+  .delete(isAuthenticatedUser, checkDeactivated, removeAvatar);
 router
   .route("/generate/email/otp")
   .get(isAuthenticatedUser, checkDeactivated, generateMailOTP);

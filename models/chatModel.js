@@ -10,6 +10,17 @@ const chatSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    groupAvatar: {
+      public_id: {
+        type: String,
+        default: "default_image",
+      },
+      url: {
+        type: String,
+        default:
+          "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
+      },
+    },
     users: [
       {
         type: mongoose.Schema.Types.ObjectId,

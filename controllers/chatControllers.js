@@ -3,6 +3,7 @@ const User = require("../models/userModel");
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const sendToken = require("../utils/jwtToken");
+const cloudinary = require("cloudinary");
 
 exports.accessChat = catchAsyncErrors(async (req, res, next) => {
   const { userId } = req.body;
@@ -55,7 +56,7 @@ exports.fetchChats = catchAsyncErrors(async (req, res, next) => {
           path: "latestMessage.sender",
           select: "name avatar email",
         });
-        res.status(200).send({success:true,data:results});
+        res.status(200).send({ success: true, data: results });
       });
   } catch (error) {
     res.status(400);
@@ -91,10 +92,64 @@ exports.createGroupChat = catchAsyncErrors(async (req, res, next) => {
       .populate("users", "-password")
       .populate("groupAdmin", "-password");
 
-    res.status(200).json({success:true,message:"Created",data:fullGroupChat});
+    res
+      .status(200)
+      .json({ success: true, message: "Created", data: fullGroupChat });
   } catch (error) {
     return next(new ErrorHandler("Unable to creat Group chat", 400));
   }
+});
+
+exports.changeGroupIcon = catchAsyncErrors(async (req, res, next) => {
+  const { chatId } = req.params;
+
+  const chat = await Chat.findById(chatId);
+
+  if (!chat) {
+    return next(new ErrorHandler("Chat not found", 404));
+  }
+
+  if (chat.groupAvatar.public_id !== "default_image") {
+    await cloudinary.v2.uploader.destroy(chat.groupAvatar.public_id);
+  }
+
+  const result = await cloudinary.v2.uploader.upload(req.file.path, {
+    folder: "Chat_app_avatar",
+    width: 150,
+    crop: "scale",
+  });
+
+  chat.groupAvatar = {
+    public_id: result.public_id,
+    url: result.secure_url,
+  };
+
+  await chat.save();
+  res.status(200).json({
+    success: true,
+  });
+});
+exports.removeGroupIcon = catchAsyncErrors(async (req, res, next) => {
+  const { chatId } = req.params;
+
+  const chat = await Chat.findById(chatId);
+
+  if (!chat) {
+    return next(new ErrorHandler("Chat not found", 404));
+  }
+
+  await cloudinary.v2.uploader.destroy(user.avatar.public_id);
+
+  chat.groupAvatar = {
+    public_id: "default_image",
+    url: "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
+  };
+
+  await chat.save();
+
+  res.status(200).json({
+    success: true,
+  });
 });
 
 exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
@@ -113,9 +168,9 @@ exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
     .populate("groupAdmin", "-password");
 
   if (!updateChat) {
-    return next(new ErrorHandler("Chat Not Found",404));
+    return next(new ErrorHandler("Chat Not Found", 404));
   }
-  res.status(200).json({success: true,message:"Updated"});
+  res.status(200).json({ success: true, message: "Updated" });
 });
 
 exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
@@ -145,9 +200,10 @@ exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
     .populate("users", "-password")
     .populate("groupAdmin", "-password");
 
-  res.status(200).json({success:true,message:"User(s) added successfully"});
+  res
+    .status(200)
+    .json({ success: true, message: "User(s) added successfully" });
 });
-
 
 exports.removeFromGroup = catchAsyncErrors(async (req, res, next) => {
   const { chatId, userId } = req.body;
@@ -175,5 +231,7 @@ exports.removeFromGroup = catchAsyncErrors(async (req, res, next) => {
     .populate("users", "-password")
     .populate("groupAdmin", "-password");
 
-  res.status(200).json({succes:true, message:"User(s) removed successfully"});
+  res
+    .status(200)
+    .json({ succes: true, message: "User(s) removed successfully" });
 });

@@ -505,14 +505,13 @@ exports.updateEmail = catchAsyncErrors(async (req, res, next) => {
 
 exports.logoutUser = catchAsyncErrors(async (req, res, next) => {
   const token = req.cookies.token;
-  if (!token)
-    return next(new ErrorHandler("token not present", 400));
-    const user = await User.findById(req.user._id);
-    res.clearCookie("token", {
-      httpOnly: true,
-      // secure: true,
-      // sameSite: "None",
-    });
+  if (!token) return next(new ErrorHandler("token not present", 400));
+  const user = await User.findById(req.user._id);
+  res.clearCookie("token", {
+    httpOnly: true,
+    // secure: true,
+    // sameSite: "None",
+  });
   if (!user)
     return next(new ErrorHandler("User not found or already logged out", 404));
 
@@ -568,6 +567,27 @@ exports.uploadAvatar = catchAsyncErrors(async (req, res, next) => {
   user.avatar = {
     public_id: result.public_id,
     url: result.secure_url,
+  };
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+  });
+});
+
+exports.removeAvatar = catchAsyncErrors(async (req, res, next) => {
+  const user = await User.findById(req.user.id);
+
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
+  await cloudinary.v2.uploader.destroy(user.avatar.public_id);
+
+  user.avatar = {
+    public_id: "default_image",
+    url: "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
   };
 
   await user.save();

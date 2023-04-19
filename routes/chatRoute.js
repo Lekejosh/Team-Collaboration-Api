@@ -11,8 +11,10 @@ const {
   renameGroup,
   addToGroup,
   removeFromGroup,
+  changeGroupIcon,
+  removeGroupIcon,
 } = require("../controllers/chatControllers");
-
+const upload = require("../utils/multer");
 router.route("/").post(isAuthenticatedUser, checkDeactivated, accessChat);
 router.route("/fetch").get(isAuthenticatedUser, checkDeactivated, fetchChats);
 router
@@ -27,5 +29,15 @@ router
 router
   .route("/group/remove")
   .put(isAuthenticatedUser, checkDeactivated, removeFromGroup);
+
+router
+  .route("/group/icon/:chatId")
+  .put(
+    upload.single("avatar"),
+    isAuthenticatedUser,
+    checkDeactivated,
+    changeGroupIcon
+  )
+  .delete(isAuthenticatedUser, checkDeactivated, removeGroupIcon);
 
 module.exports = router;
