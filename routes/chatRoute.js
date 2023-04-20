@@ -13,6 +13,7 @@ const {
   removeFromGroup,
   changeGroupIcon,
   removeGroupIcon,
+  exitGroup,
 } = require("../controllers/chatControllers");
 const upload = require("../utils/multer");
 router.route("/").post(isAuthenticatedUser, checkDeactivated, accessChat);
@@ -39,5 +40,8 @@ router
     changeGroupIcon
   )
   .delete(isAuthenticatedUser, checkDeactivated, removeGroupIcon);
+router
+  .route("/group/exit")
+  .delete(isAuthenticated, checkDeactivated, exitGroup);
 
 module.exports = router;

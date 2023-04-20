@@ -16,7 +16,10 @@ exports.sendMessage = catchAsyncErrors(async (req, res, next) => {
   }
   var newMessage = {
     sender: req.user._id,
-    content: content,
+    content: {
+      message: content,
+      type: "Message",
+    },
     chat: chatId,
   };
 

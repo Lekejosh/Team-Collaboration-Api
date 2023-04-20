@@ -1,5 +1,6 @@
 const Chat = require("../models/chatModel");
 const User = require("../models/userModel");
+const Message = require("../models/messageModel");
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const sendToken = require("../utils/jwtToken");
@@ -8,7 +9,7 @@ const cloudinary = require("cloudinary");
 exports.accessChat = catchAsyncErrors(async (req, res, next) => {
   const { userId } = req.body;
   if (!userId) {
-    return next(new ErrorHandler("UserId not send", 400));
+    return next(new ErrorHandler("User Id not provided", 400));
   }
   var isChat = await Chat.find({
     isGroupChat: false,
@@ -124,10 +125,32 @@ exports.changeGroupIcon = catchAsyncErrors(async (req, res, next) => {
     url: result.secure_url,
   };
 
-  await chat.save();
-  res.status(200).json({
-    success: true,
-  });
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username} change the Group Icon`,
+      type: "Group Activity",
+    },
+    chat: chatId,
+  };
+
+  try {
+    var message = await Message.create(newMessage);
+    message = await message.populate("sender", "username avatar");
+    message = await message.populate("chat");
+    message = await User.populate(message, {
+      path: "chat.users",
+      select: "username avatar email",
+    });
+
+    await Chat.findByIdAndUpdate(req.body.chatId, {
+      latestMessage: message,
+    });
+    await chat.save();
+    res.status(200).json({ success: true, message });
+  } catch (error) {
+    return next(new ErrorHandler("Invalid Chat Id", 400));
+  }
 });
 exports.removeGroupIcon = catchAsyncErrors(async (req, res, next) => {
   const { chatId } = req.params;
@@ -145,11 +168,32 @@ exports.removeGroupIcon = catchAsyncErrors(async (req, res, next) => {
     url: "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
   };
 
-  await chat.save();
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username} Removed the Group Icon`,
+      type: "Group Activity",
+    },
+    chat: chatId,
+  };
 
-  res.status(200).json({
-    success: true,
-  });
+  try {
+    var message = await Message.create(newMessage);
+    message = await message.populate("sender", "username avatar");
+    message = await message.populate("chat");
+    message = await User.populate(message, {
+      path: "chat.users",
+      select: "username avatar email",
+    });
+
+    await Chat.findByIdAndUpdate(req.body.chatId, {
+      latestMessage: message,
+    });
+    await chat.save();
+    res.status(200).json({ success: true, message });
+  } catch (error) {
+    return next(new ErrorHandler("Invalid Chat Id", 400));
+  }
 });
 
 exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
@@ -170,7 +214,32 @@ exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
   if (!updateChat) {
     return next(new ErrorHandler("Chat Not Found", 404));
   }
-  res.status(200).json({ success: true, message: "Updated" });
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username} Renamed the Group`,
+      type: "Group Activity",
+    },
+    chat: chatId,
+  };
+
+  try {
+    var message = await Message.create(newMessage);
+    message = await message.populate("sender", "username avatar");
+    message = await message.populate("chat");
+    message = await User.populate(message, {
+      path: "chat.users",
+      select: "username avatar email",
+    });
+
+    await Chat.findByIdAndUpdate(req.body.chatId, {
+      latestMessage: message,
+    });
+    await chat.save();
+    res.status(200).json({ success: true, message });
+  } catch (error) {
+    return next(new ErrorHandler("Invalid Chat Id", 400));
+  }
 });
 
 exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
@@ -190,7 +259,7 @@ exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("User Already in group", 400));
   }
 
-  const added = await Chat.findByIdAndUpdate(
+  await Chat.findByIdAndUpdate(
     chatId,
     {
       $push: { users: users },
@@ -200,9 +269,32 @@ exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
     .populate("users", "-password")
     .populate("groupAdmin", "-password");
 
-  res
-    .status(200)
-    .json({ success: true, message: "User(s) added successfully" });
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username} added Member(S) to the group`,
+      type: "Group Activity",
+    },
+    chat: chatId,
+  };
+
+  try {
+    var message = await Message.create(newMessage);
+    message = await message.populate("sender", "username avatar");
+    message = await message.populate("chat");
+    message = await User.populate(message, {
+      path: "chat.users",
+      select: "username avatar email",
+    });
+
+    await Chat.findByIdAndUpdate(req.body.chatId, {
+      latestMessage: message,
+    });
+    await chat.save();
+    res.status(200).json({ success: true, message });
+  } catch (error) {
+    return next(new ErrorHandler("Invalid Chat Id", 400));
+  }
 });
 
 exports.removeFromGroup = catchAsyncErrors(async (req, res, next) => {
@@ -231,7 +323,77 @@ exports.removeFromGroup = catchAsyncErrors(async (req, res, next) => {
     .populate("users", "-password")
     .populate("groupAdmin", "-password");
 
-  res
-    .status(200)
-    .json({ succes: true, message: "User(s) removed successfully" });
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username} removed Member(s) from the group`,
+      type: "Group Activity",
+    },
+    chat: chatId,
+  };
+
+  try {
+    var message = await Message.create(newMessage);
+    message = await message.populate("sender", "username avatar");
+    message = await message.populate("chat");
+    message = await User.populate(message, {
+      path: "chat.users",
+      select: "username avatar email",
+    });
+
+    await Chat.findByIdAndUpdate(req.body.chatId, {
+      latestMessage: message,
+    });
+    await chat.save();
+    res.status(200).json({ success: true, message });
+  } catch (error) {
+    return next(new ErrorHandler("Invalid Chat Id", 400));
+  }
+});
+
+exports.exitGroup = catchAsyncErrors(async (req, res, next) => {
+  const { chatId } = req.body;
+  const chat = await Chat.findById(chatId);
+
+  if (!chat) return next(new ErrorHandler("Chat not found", 404));
+
+  const checkExistingUser = await chat.users.find(
+    (user) => user._id.toString() === req.user._id.toString()
+  );
+  if (!checkExistingUser)
+    return next(new ErrorHandler("User does not exist in group"));
+
+  await Chat.findByIdAndUpdate(
+    chatId,
+    {
+      $pull: { users: req.user._id },
+    },
+    { new: true }
+  );
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username} left the group`,
+      type: "Group Activity",
+    },
+    chat: chatId,
+  };
+
+  try {
+    var message = await Message.create(newMessage);
+    message = await message.populate("sender", "username avatar");
+    message = await message.populate("chat");
+    message = await User.populate(message, {
+      path: "chat.users",
+      select: "username avatar email",
+    });
+
+    await Chat.findByIdAndUpdate(req.body.chatId, {
+      latestMessage: message,
+    });
+    await chat.save();
+    res.status(200).json({ success: true, message });
+  } catch (error) {
+    return next(new ErrorHandler("Invalid Chat Id", 400));
+  }
 });

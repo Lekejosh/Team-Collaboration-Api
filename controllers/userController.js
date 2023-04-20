@@ -707,6 +707,10 @@ exports.allUsers = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, users });
 });
 
+// exports.getMutualUsers = catchAsyncErrors(async(req,res,next)=>{
+  
+// })
+
 exports.deactivateAccount = catchAsyncErrors(async (req, res, next) => {
   const { deactivate } = req.body;
 

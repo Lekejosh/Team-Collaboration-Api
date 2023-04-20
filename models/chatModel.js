@@ -41,6 +41,12 @@ const chatSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    activites: [
+      {
+        message: { type: String },
+        date: { type: Date },
+      },
+    ],
   },
   {
     timestamps: true,

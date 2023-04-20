@@ -31,8 +31,14 @@ const messageSchema = new mongoose.Schema(
       url: { type: String },
     },
     content: {
-      type: String,
-      trim: true,
+      message: {
+        type: String,
+        trim: true,
+      },
+      type: {
+        type: String,
+        trim: true,
+      },
     },
     isDeleted: {
       type: Boolean,
