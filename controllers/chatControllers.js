@@ -40,7 +40,34 @@ exports.accessChat = catchAsyncErrors(async (req, res, next) => {
         "users",
         "-password"
       );
-      res.status(200).send(fullChat);
+      var newMessage = {
+        sender: req.user._id,
+        content: {
+          message: `Chat is Encrypted`,
+          type: "Group Activity",
+        },
+        chat: createdChat._id,
+      };
+
+      try {
+        var message = await Message.create(newMessage);
+        message = await message.populate("sender", "username avatar");
+        message = await message.populate("chat");
+        message = await User.populate(message, {
+          path: "chat.users",
+          select: "username avatar email",
+        });
+
+        await Chat.findByIdAndUpdate(
+          req.body.createdChat._id,
+          {
+            latestMessage: message,
+          },
+          { new: true }
+        );
+
+        res.status(200).json({ success: true, message });
+      } catch (error) {}
     } catch (error) {}
   }
 });
@@ -93,9 +120,34 @@ exports.createGroupChat = catchAsyncErrors(async (req, res, next) => {
       .populate("users", "-password")
       .populate("groupAdmin", "-password");
 
-    res
-      .status(200)
-      .json({ success: true, message: "Created", data: fullGroupChat });
+    var newMessage = {
+      sender: req.user._id,
+      content: {
+        message: `Chat is Encrypted`,
+        type: "Group Activity",
+      },
+      chat: groupChat._id,
+    };
+
+    try {
+      var message = await Message.create(newMessage);
+      message = await message.populate("sender", "username avatar");
+      message = await message.populate("chat");
+      message = await User.populate(message, {
+        path: "chat.users",
+        select: "username avatar email",
+      });
+
+      await Chat.findByIdAndUpdate(
+        req.body.groupChat._id,
+        {
+          latestMessage: message,
+        },
+        { new: true }
+      );
+
+      res.status(200).json({ success: true, message: "Created", message });
+    } catch (error) {}
   } catch (error) {
     return next(new ErrorHandler("Unable to creat Group chat", 400));
   }
@@ -373,7 +425,7 @@ exports.exitGroup = catchAsyncErrors(async (req, res, next) => {
   var newMessage = {
     sender: req.user._id,
     content: {
-      message: `${req.user.username} left the group`,
+      message: `${req.user.username} left the Group`,
       type: "Group Activity",
     },
     chat: chatId,
