@@ -688,7 +688,7 @@ exports.scanQr = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
-exports.allUsers = catchAsyncErrors(async (req, res, next) => {
+exports.searchUsers = catchAsyncErrors(async (req, res, next) => {
   const keyword = req.query.search
     ? {
         $or: [
@@ -699,6 +699,11 @@ exports.allUsers = catchAsyncErrors(async (req, res, next) => {
     : {};
 
   const users = await User.find(keyword).find({ _id: { $ne: req.user._id } });
+  res.status(200).json({ success: true, users });
+});
+
+exports.allUsers = catchAsyncErrors(async (req, res, next) => {
+  const users = await User.find().find({ _id: { $ne: req.user._id } });
   res.status(200).json({ success: true, users });
 });
 

@@ -7,7 +7,7 @@ const {
 const {
   register,
   login,
-  allUsers,
+  searchUsers,
   generateQr,
   scanQr,
   uploadAvatar,
@@ -27,6 +27,7 @@ const {
   // refreshToken,
   deleteAccount,
   checkUser,
+  allUsers,
 } = require("../controllers/userController");
 const upload = require("../utils/multer");
 
@@ -73,7 +74,8 @@ router
   .route("/qr/generate")
   .post(isAuthenticatedUser, checkDeactivated, generateQr);
 router.route("/qr/scan").post(scanQr);
-router.route("/").get(isAuthenticatedUser, checkDeactivated, allUsers);
+router.route("/search").get(isAuthenticatedUser, checkDeactivated, searchUsers);
+router.route('/').get(isAuthenticatedUser,checkDeactivated,allUsers)
 router.route("/deactivate").post(isAuthenticatedUser, deactivateAccount);
 router.route("/delete-account").delete(isAuthenticatedUser, deleteAccount);
 // router.route("/refresh-token").get(refreshToken);
