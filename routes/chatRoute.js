@@ -42,6 +42,6 @@ router
   .delete(isAuthenticatedUser, checkDeactivated, removeGroupIcon);
 router
   .route("/group/exit")
-  .delete(isAuthenticated, checkDeactivated, exitGroup);
+  .delete(isAuthenticatedUser, checkDeactivated, exitGroup);
 
 module.exports = router;

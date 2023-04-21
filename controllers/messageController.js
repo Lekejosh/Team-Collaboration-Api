@@ -14,6 +14,7 @@ exports.sendMessage = catchAsyncErrors(async (req, res, next) => {
   if (!content) {
     return console.log("No Content Provided");
   }
+  if (!chatId) return next(new ErrorHandler("Chat Id not provided", 401));
   var newMessage = {
     sender: req.user._id,
     content: {
