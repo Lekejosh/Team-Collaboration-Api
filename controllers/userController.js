@@ -366,7 +366,7 @@ exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
     }
   }
 
-  res.status(400).json({
+  res.status(403).json({
     success: false,
     message:
       "Error Sending Password reset token to an unverified user, Contact Support",

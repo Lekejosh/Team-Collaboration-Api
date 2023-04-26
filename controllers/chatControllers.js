@@ -3,7 +3,6 @@ const User = require("../models/userModel");
 const Message = require("../models/messageModel");
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
-const sendToken = require("../utils/jwtToken");
 const cloudinary = require("cloudinary");
 
 exports.accessChat = catchAsyncErrors(async (req, res, next) => {
@@ -115,8 +114,9 @@ exports.createGroupChat = catchAsyncErrors(async (req, res, next) => {
       users: users,
       isGroupChat: true,
       groupAdmin: req.user,
+      superAdmin: req.user,
     });
-    const fullGroupChat = await Chat.findOne({ _id: groupChat.id })
+   await Chat.findOne({ _id: groupChat.id })
       .populate("users", "-password")
       .populate("groupAdmin", "-password");
 
@@ -162,6 +162,21 @@ exports.changeGroupIcon = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Chat not found", 404));
   }
 
+  const checkExistingUser = chat.users.find(
+    (user) => user.toString() === req.user._id.toString()
+  );
+
+  if (!checkExistingUser) {
+    return next(new ErrorHandler("Not a group Admin", 401));
+  }
+
+  const checkExistingAdmin = chat.groupAdmin.find(
+    (user) => user.toString() === req.user._id.toString()
+  );
+
+  if (!checkExistingAdmin)
+    return next(new ErrorHandler("Specified user is not an Admin"));
+
   if (chat.groupAvatar.public_id !== "default_image") {
     await cloudinary.v2.uploader.destroy(chat.groupAvatar.public_id);
   }
@@ -204,6 +219,7 @@ exports.changeGroupIcon = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Invalid Chat Id", 400));
   }
 });
+
 exports.removeGroupIcon = catchAsyncErrors(async (req, res, next) => {
   const { chatId } = req.params;
 
@@ -212,6 +228,12 @@ exports.removeGroupIcon = catchAsyncErrors(async (req, res, next) => {
   if (!chat) {
     return next(new ErrorHandler("Chat not found", 404));
   }
+  const checkExistingAdmin = chat.groupAdmin.find(
+    (user) => user.toString() === req.user._id.toString()
+  );
+
+  if (!checkExistingAdmin)
+    return next(new ErrorHandler("Specified user is not an Admin"));
 
   await cloudinary.v2.uploader.destroy(user.avatar.public_id);
 
@@ -248,6 +270,71 @@ exports.removeGroupIcon = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
+exports.makeGroupAdmin = catchAsyncErrors(async (req, res, next) => {
+  const { chatId, userId } = req.params;
+
+  if (!chatId || !userId)
+    return next(new ErrorHandler("Required Body not provided", 400));
+
+  const chat = await Chat.findById(chatId);
+
+  if (!chat) return next(new ErrorHandler("Chat Not Found", 404));
+
+  if (!chat.superAdmin.toString() === req.user._id.toString())
+    return next(new ErrorHandler("Cannot Make this request", 401));
+
+  const checkExistingUser = chat.users.find(
+    (user) => user.toString() === userId.toString()
+  );
+
+  if (!checkExistingUser)
+    return next(new ErrorHandler("User not found in this group", 404));
+
+  chat.groupAdmin.push(userId);
+  await chat.save();
+
+  res.status(200).json({ success: true, message: "Successull made an admin" });
+});
+
+exports.removeGroupAdmin = catchAsyncErrors(async (req, res, next) => {
+  const { chatId, userId } = req.params;
+
+  if (!chatId || !userId)
+    return next(new ErrorHandler("Required Body not provided", 400));
+
+  const chat = await Chat.findById(chatId);
+
+  if (!chat) return next(new ErrorHandler("Chat Not Found", 404));
+
+  if (!chat.superAdmin.toString() === req.user._id.toString())
+    return next(new ErrorHandler("Cannot Make this request", 401));
+
+  const checkExistingUser = chat.users.find(
+    (user) => user.toString() === userId.toString()
+  );
+
+  if (!checkExistingUser)
+    return next(new ErrorHandler("User not found in this group", 404));
+
+  const checkExistingAdmin = chat.groupAdmin.find(
+    (user) => user.toString() === userId.toString()
+  );
+
+  if (!checkExistingAdmin)
+    return next(new ErrorHandler("Specified user is not an Admin"));
+
+  await Chat.findByIdAndUpdate(
+    chatId,
+    {
+      $pull: { groupAdmin: userId },
+    },
+    { new: true }
+  );
+  res
+    .status(200)
+    .json({ success: true, message: "User Successully Removed as an admin" });
+});
+
 exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
   const { chatId, chatName } = req.body;
 
@@ -266,6 +353,12 @@ exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
   if (!updateChat) {
     return next(new ErrorHandler("Chat Not Found", 404));
   }
+  const checkExistingAdmin = chat.groupAdmin.find(
+    (user) => user.toString() === req.user._id.toString()
+  );
+
+  if (!checkExistingAdmin)
+    return next(new ErrorHandler("User is not an Admin"));
   var newMessage = {
     sender: req.user._id,
     content: {
@@ -302,6 +395,12 @@ exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
   if (!chat) {
     return next(new ErrorHandler("Chat Not Found"));
   }
+  const checkExistingAdmin = chat.groupAdmin.find(
+    (user) => user.toString() === req.user._id.toString()
+  );
+
+  if (!checkExistingAdmin)
+    return next(new ErrorHandler("User is not an Admin"));
 
   // Check if user already exists in the group
   const existingUser = chat.users.find(
@@ -357,6 +456,12 @@ exports.removeFromGroup = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Chat Not Found"));
   }
 
+  const checkExistingAdmin = chat.groupAdmin.find(
+    (user) => user.toString() === req.user._id.toString()
+  );
+
+  if (!checkExistingAdmin)
+    return next(new ErrorHandler("User is not an Admin"));
   // Check if user is not in the group
   const existingUser = chat.users.find(
     (user) => user.toString() === userId.toString()
@@ -364,8 +469,7 @@ exports.removeFromGroup = catchAsyncErrors(async (req, res, next) => {
   if (!existingUser) {
     return next(new ErrorHandler("User is not in the group", 400));
   }
-
-  const removed = await Chat.findByIdAndUpdate(
+  await Chat.findByIdAndUpdate(
     chatId,
     {
       $pull: { users: userId },

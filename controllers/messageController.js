@@ -3,7 +3,6 @@ const User = require("../models/userModel");
 const Message = require("../models/messageModel");
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
-const sendToken = require("../utils/jwtToken");
 const cloudinary = require("cloudinary");
 
 //TODO: Fix send document to support any type of document format
