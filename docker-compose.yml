@@ -1,0 +1,47 @@
+version: "3.9"
+services:
+  mongo_db:
+    container_name: chat_api_container
+    image: mongo:latest
+    restart: always
+    ports: 
+      - 2717:27017
+    volumes:
+      - mongo_db:/data/db
+
+  # Node Api service
+  api:
+    build: .
+    image: lekejosh/chat_api
+    restart: always
+    volumes:
+      - .:/usr/src/app
+    ports:
+      - "${PORT}:${PORT_1}"
+    environment:
+      ACCESS_TOKEN_EXPIRE: "${ACCESS_TOKEN_EXPIRE}"
+      ACCESS_TOKEN_SECRET: "${ACCESS_TOKEN_SECRET}"
+      REFRESH_TOKEN_EXPIRE: "${REFRESH_TOKEN_EXPIRE}"
+      REFRESH_TOKEN_SECRET: "${REFRESH_TOKEN_SECRET}"
+      JWT_EXPIRE: "${JWT_EXPIRE}"
+      JWT_SECRET: "${JWT_SECRET}"
+      PORT: "${PORT_1}"
+      DB_URI: "${DB_URI}"
+      DB_NAME: chat_api
+      COOKIE_EXPIRE: "${COOKIE_EXPIRE}"
+      SMPT_SERVICE: "${SMPT_SERVICE}"
+      SMPT_HOST: "${SMPT_HOST}"
+      SMPT_PORT: "${SMPT_PORT}"
+      SMPT_MAIL: "${SMPT_MAIL}"
+      SMPT_PASSWORD: "${SMPT_PASSWORD}"
+      CLOUDINARY_NAME: "${CLOUDINARY_NAME}"
+      CLOUDINARY_APIKEY: "${CLOUDINARY_APIKEY}"
+      CLOUDINARY_SECRET: "${CLOUDINARY_SECRET}"
+      TWILIO_ACCOUNT_SID: "${TWILIO_ACCOUNT_SID}"
+      TWILIO_AUTH_TOKEN: "${TWILIO_AUTH_TOKEN}"
+      TWILIO_FROM_PHONE: "${TWILIO_FROM_PHONE}"
+    depends_on:
+      - mongo_db
+
+volumes:
+  mongo_db: {}

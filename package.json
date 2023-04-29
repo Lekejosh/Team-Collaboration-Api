@@ -4,7 +4,8 @@
   "description": "My Final Year Project",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "dev": "nodemon server.js"
   },
   "repository": {
     "type": "git",
