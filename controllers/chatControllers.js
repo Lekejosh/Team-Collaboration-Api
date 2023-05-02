@@ -56,14 +56,9 @@ exports.accessChat = catchAsyncErrors(async (req, res, next) => {
           path: "chat.users",
           select: "username avatar email",
         });
-
-        await Chat.findByIdAndUpdate(
-          req.body.createdChat._id,
-          {
-            latestMessage: message,
-          },
-          { new: true }
-        );
+        await Chat.findByIdAndUpdate(createdChat._id, {
+          latestMessage: message,
+        });
 
         res.status(200).json({ success: true, message });
       } catch (error) {}
