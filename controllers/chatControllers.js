@@ -22,7 +22,7 @@ exports.accessChat = catchAsyncErrors(async (req, res, next) => {
 
   isChat = await User.populate(isChat, {
     path: "latestMessage.sender",
-    select: "name avatar email",
+    select: "name avatar email username",
   });
 
   if (isChat.length > 0) {
@@ -35,7 +35,7 @@ exports.accessChat = catchAsyncErrors(async (req, res, next) => {
     };
     try {
       const createdChat = await Chat.create(chatData);
-      const fullChat = await Chat.findOne({ _id: createdChat._id }).populate(
+      await Chat.findOne({ _id: createdChat._id }).populate(
         "users",
         "-password"
       );
@@ -76,7 +76,7 @@ exports.fetchChats = catchAsyncErrors(async (req, res, next) => {
       .then(async (results) => {
         results = await User.populate(results, {
           path: "latestMessage.sender",
-          select: "name avatar email",
+          select: "name avatar email username",
         });
         res.status(200).send({ success: true, data: results });
       });
@@ -111,7 +111,7 @@ exports.createGroupChat = catchAsyncErrors(async (req, res, next) => {
       groupAdmin: req.user,
       superAdmin: req.user,
     });
-   await Chat.findOne({ _id: groupChat.id })
+    await Chat.findOne({ _id: groupChat.id })
       .populate("users", "-password")
       .populate("groupAdmin", "-password");
 
@@ -134,7 +134,7 @@ exports.createGroupChat = catchAsyncErrors(async (req, res, next) => {
       });
 
       await Chat.findByIdAndUpdate(
-        req.body.groupChat._id,
+        groupChat._id,
         {
           latestMessage: message,
         },

@@ -41,15 +41,21 @@ io.on("connection", (socket) => {
 
   socket.on("setup", (userData) => {
     socket.join(userData);
-    console.log(userData)
+    console.log(userData);
     socket.emit("connected");
   });
   socket.on("join chat", (room) => {
     socket.join(room);
     console.log("User Joined Room" + room);
-  }); 
+  });
 
-  socket.on("typing", (room) => socket.in(room).emit("typing"));
+  socket.on("typing", (room) => {
+    // // var chat = data;
+    // console.log(users);
+    // users.forEach((user) => {
+      socket.in(room).emit("typing");
+    // });
+  });
   socket.on("stop typing", (room) => socket.in(room).emit("stop typing"));
 
   socket.on("new message", (newMessageRecieved) => {
