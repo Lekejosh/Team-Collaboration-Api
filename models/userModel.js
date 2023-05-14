@@ -82,6 +82,7 @@ const userSchema = new mongoose.Schema(
       required: true,
       default: false,
     },
+    lastSeen: Date,
     // refreshToken:[String],
     generatedOtp: String,
     resetPasswordToken: String,

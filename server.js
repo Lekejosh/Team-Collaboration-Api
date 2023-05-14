@@ -53,7 +53,7 @@ io.on("connection", (socket) => {
     // // var chat = data;
     // console.log(users);
     // users.forEach((user) => {
-      socket.in(room).emit("typing");
+    socket.in(room).emit("typing");
     // });
   });
   socket.on("stop typing", (room) => socket.in(room).emit("stop typing"));

@@ -21,6 +21,7 @@ exports.sendMessage = catchAsyncErrors(async (req, res, next) => {
       type: "Message",
     },
     chat: chatId,
+    isReadBy: [req.user._id],
   };
 
   try {
@@ -176,6 +177,29 @@ exports.allMessages = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
+exports.isReadMessage = catchAsyncErrors(async (req, res, next) => {
+  const { messageId } = req.params;
+
+  if (!messageId) return next(new ErrorHandler("Message Id not provided", 401));
+
+  const message = await Message.findById(messageId);
+
+  if (!message) return next(new ErrorHandler("Message not found", 404));
+
+  
+  const ifExist = message.isReadBy.find(
+    (user) => user._id.toString() === req.user._id.toString()
+  );
+
+  if (ifExist) {
+    return next(new ErrorHandler("User already Read this message"));
+  }
+
+  message.isReadBy.push(req.user._id);
+  await message.save();
+
+  res.status(200).json({ success: true, message });
+});
 exports.deleteMessageFromSelf = catchAsyncErrors(async (req, res, next) => {
   const message = await Message.findOne({
     chat: req.params.chatId,

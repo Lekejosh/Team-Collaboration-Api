@@ -4,7 +4,7 @@ services:
     container_name: chat_api_container
     image: mongo:latest
     restart: always
-    ports: 
+    ports:
       - 2717:27017
     volumes:
       - /mongo_db:/data/db
@@ -40,6 +40,8 @@ services:
       TWILIO_ACCOUNT_SID: "${TWILIO_ACCOUNT_SID}"
       TWILIO_AUTH_TOKEN: "${TWILIO_AUTH_TOKEN}"
       TWILIO_FROM_PHONE: "${TWILIO_FROM_PHONE}"
+      TREBBLE_API_KEY: "${TREBBLE_API_KEY}"
+      TREBBLE_PROJECTID: "${TREBBLE_PROJECTID}"
     depends_on:
       - mongo_db
 

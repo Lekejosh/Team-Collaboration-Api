@@ -13,6 +13,7 @@ const {
   sendDocumentMessage,
   deleteMessageFromSelf,
   deleteMessageFromEverybody,
+  isReadMessage,
 } = require("../controllers/messageController");
 const upload = require("../utils/audioMulter");
 const uploadImage = require("../utils/multer");
@@ -43,7 +44,7 @@ router
     isAuthenticatedUser,
     checkDeactivated,
     sendImageMessage
-  );2
+  );
 router
   .route("/send/document")
   .post(
@@ -55,6 +56,10 @@ router
 router
   .route("/:chatId")
   .get(isAuthenticatedUser, checkDeactivated, allMessages);
+
+router
+  .route("/read/:messageId")
+  .post(isAuthenticatedUser, checkDeactivated, isReadMessage);
 
 router
   .route("/:chatId/:messageId")

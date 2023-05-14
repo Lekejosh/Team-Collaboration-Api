@@ -33,6 +33,8 @@ router
   .route("/group/remove")
   .put(isAuthenticatedUser, checkDeactivated, removeFromGroup);
 
+
+
 router.route('/group/admin/:chatId').put(isAuthenticatedUser,checkDeactivated,makeGroupAdmin).delete(isAuthenticatedUser,checkDeactivated,removeGroupAdmin)
 
 router

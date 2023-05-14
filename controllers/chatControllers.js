@@ -86,6 +86,8 @@ exports.fetchChats = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
+
+
 exports.createGroupChat = catchAsyncErrors(async (req, res, next) => {
   if (!req.body.users || !req.body.name) {
     return next(new ErrorHandler("Please Fill out the fields", 400));
