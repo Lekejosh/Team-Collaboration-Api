@@ -322,7 +322,7 @@ exports.editCard = catchAsyncErrors(async (req, res, next) => {
   const { cardId, boardId } = req.params;
 
   if (!cardId || !boardId) {
-    return next(new ErrorHandler("Parameters not Specified"));
+    return next(new ErrorHandler("Parameters not Specified",400));
   }
 
   const board = await Board.findById(boardId);
@@ -861,9 +861,9 @@ exports.onComplete = catchAsyncErrors(async (req, res, next) => {
 
       return res.status(200).json({ success: true });
     }
-    return next(new ErrorHandler("Unauthorized"));
+    return next(new ErrorHandler("Unauthorized",401));
   }
-  return next(new ErrorHandler("Unauthorized"));
+  return next(new ErrorHandler("Unauthorized",401));
 });
 
 exports.deleteChecklistContent = catchAsyncErrors(async (req, res, next) => {

@@ -172,7 +172,7 @@ exports.changeGroupIcon = catchAsyncErrors(async (req, res, next) => {
   );
 
   if (!checkExistingAdmin)
-    return next(new ErrorHandler("Specified user is not an Admin"));
+    return next(new ErrorHandler("Specified user is not an Admin",401));
 
   if (chat.groupAvatar.public_id !== "default_image") {
     await cloudinary.v2.uploader.destroy(chat.groupAvatar.public_id);
@@ -230,7 +230,7 @@ exports.removeGroupIcon = catchAsyncErrors(async (req, res, next) => {
   );
 
   if (!checkExistingAdmin)
-    return next(new ErrorHandler("Specified user is not an Admin"));
+    return next(new ErrorHandler("Specified user is not an Admin",400));
 
   await cloudinary.v2.uploader.destroy(user.avatar.public_id);
 
@@ -318,7 +318,7 @@ exports.removeGroupAdmin = catchAsyncErrors(async (req, res, next) => {
   );
 
   if (!checkExistingAdmin)
-    return next(new ErrorHandler("Specified user is not an Admin"));
+    return next(new ErrorHandler("Specified user is not an Admin",401));
 
   await Chat.findByIdAndUpdate(
     chatId,
@@ -355,7 +355,7 @@ exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
   );
 
   if (!checkExistingAdmin)
-    return next(new ErrorHandler("User is not an Admin"));
+    return next(new ErrorHandler("User is not an Admin",401));
   var newMessage = {
     sender: req.user._id,
     content: {
@@ -390,14 +390,14 @@ exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
 
   const chat = await Chat.findById(chatId);
   if (!chat) {
-    return next(new ErrorHandler("Chat Not Found"));
+    return next(new ErrorHandler("Chat Not Found",404));
   }
   const checkExistingAdmin = chat.groupAdmin.find(
     (user) => user.toString() === req.user._id.toString()
   );
 
   if (!checkExistingAdmin)
-    return next(new ErrorHandler("User is not an Admin"));
+    return next(new ErrorHandler("User is not an Admin",401));
 
   // Check if user already exists in the group
   const existingUser = chat.users.find(
@@ -450,7 +450,7 @@ exports.removeFromGroup = catchAsyncErrors(async (req, res, next) => {
 
   const chat = await Chat.findById(chatId);
   if (!chat) {
-    return next(new ErrorHandler("Chat Not Found"));
+    return next(new ErrorHandler("Chat Not Found",404));
   }
 
   const checkExistingAdmin = chat.groupAdmin.find(
@@ -458,7 +458,7 @@ exports.removeFromGroup = catchAsyncErrors(async (req, res, next) => {
   );
 
   if (!checkExistingAdmin)
-    return next(new ErrorHandler("User is not an Admin"));
+    return next(new ErrorHandler("User is not an Admin",401));
   // Check if user is not in the group
   const existingUser = chat.users.find(
     (user) => user.toString() === userId.toString()
@@ -514,7 +514,7 @@ exports.exitGroup = catchAsyncErrors(async (req, res, next) => {
     (user) => user._id.toString() === req.user._id.toString()
   );
   if (!checkExistingUser)
-    return next(new ErrorHandler("User does not exist in group"));
+    return next(new ErrorHandler("User does not exist in group",400));
 
   await Chat.findByIdAndUpdate(
     chatId,
