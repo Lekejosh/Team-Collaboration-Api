@@ -708,7 +708,7 @@ exports.allUsers = catchAsyncErrors(async (req, res, next) => {
 });
 
 // exports.getMutualUsers = catchAsyncErrors(async(req,res,next)=>{
-  
+
 // })
 
 exports.deactivateAccount = catchAsyncErrors(async (req, res, next) => {
