@@ -8,7 +8,6 @@ const cloudinary = require("cloudinary");
 //TODO: Fix send document to support any type of document format
 //TODO: Group Admin to add and remove Group Icons
 exports.sendMessage = catchAsyncErrors(async (req, res, next) => {
-  console.log(req.body);
   const { content, chatId } = req.body;
   if (!content) {
     return console.log("No Content Provided");
@@ -166,10 +165,10 @@ exports.allMessages = catchAsyncErrors(async (req, res, next) => {
       .populate("sender", "username avatar email")
       .populate("chat");
 
-    const chat = await Chat.findById(req.params.chatId).populate(
-      "users",
-      "username avatar"
-    );
+    const chat = await Chat.findById(req.params.chatId)
+      .populate("users")
+      .populate("groupAdmin", "username avatar")
+      .populate("workspace","title");
 
     res.status(200).json({ messages, chat });
   } catch (error) {
@@ -191,7 +190,7 @@ exports.isReadMessage = catchAsyncErrors(async (req, res, next) => {
   );
 
   if (ifExist) {
-    return next(new ErrorHandler("User already Read this message",400));
+    return next(new ErrorHandler("User already Read this message", 400));
   }
 
   message.isReadBy.push(req.user._id);

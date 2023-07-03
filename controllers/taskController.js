@@ -7,7 +7,6 @@ const Task = require("../models/taskModel");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const ErrorHandler = require("../utils/errorHandler");
 const sendEmail = require("../utils/sendMail");
-
 exports.createBoard = catchAsyncErrors(async (req, res, next) => {
   const { groupId } = req.params;
 
@@ -23,7 +22,10 @@ exports.createBoard = catchAsyncErrors(async (req, res, next) => {
   }
 
   const { title, background, users } = req.body;
-  const members = JSON.parse(users);
+
+  const formattedUsers = JSON.stringify(users);
+
+  const members = JSON.parse(formattedUsers);
   members.push(req.user._id.toString());
 
   const group = await Chat.findById(groupId).populate("users");
@@ -322,7 +324,7 @@ exports.editCard = catchAsyncErrors(async (req, res, next) => {
   const { cardId, boardId } = req.params;
 
   if (!cardId || !boardId) {
-    return next(new ErrorHandler("Parameters not Specified",400));
+    return next(new ErrorHandler("Parameters not Specified", 400));
   }
 
   const board = await Board.findById(boardId);
@@ -861,9 +863,9 @@ exports.onComplete = catchAsyncErrors(async (req, res, next) => {
 
       return res.status(200).json({ success: true });
     }
-    return next(new ErrorHandler("Unauthorized",401));
+    return next(new ErrorHandler("Unauthorized", 401));
   }
-  return next(new ErrorHandler("Unauthorized",401));
+  return next(new ErrorHandler("Unauthorized", 401));
 });
 
 exports.deleteChecklistContent = catchAsyncErrors(async (req, res, next) => {

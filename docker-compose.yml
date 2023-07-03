@@ -12,7 +12,7 @@ services:
   # Node Api service
   api:
     build: .
-    image: lekejosh/chat_api
+    image: lekejosh/chat_app_api
     restart: always
     volumes:
       - .:/usr/src/app

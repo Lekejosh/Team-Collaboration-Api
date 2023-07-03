@@ -428,12 +428,14 @@ exports.updatePassword = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
-  const { username, status } = req.body;
-
-  const user = await User.findById(req.user._id);
+  let { username, status } = req.body;
 
   if (username) {
-    const usernameTaken = await User.findOne({
+    username = username.toLowerCase().trim();
+
+    var user = await User.findById(req.user._id);
+
+    var usernameTaken = await User.findOne({
       username: username,
       _id: { $ne: user._id },
     });
@@ -441,8 +443,8 @@ exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
     if (usernameTaken) {
       return next(new ErrorHandler("Username already taken", 409));
     }
+
     user.username = username;
-    await user.save();
   }
 
   user.status = status;
@@ -519,15 +521,6 @@ exports.logoutUser = catchAsyncErrors(async (req, res, next) => {
 
   // await user.save();
   res.status(200).json({ success: true, message: "Logged out successfully" });
-});
-
-exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
-  const profileUpdate = {
-    mobileNumber: req.body.mobileNumber,
-  };
-
-  await User.findByIdAndUpdate(req.user.id, profileUpdate);
-  res.status(200).json({ success: true });
 });
 
 exports.twoFactorAuth = catchAsyncErrors(async (req, res, next) => {

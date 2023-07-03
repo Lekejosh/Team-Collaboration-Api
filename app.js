@@ -14,7 +14,7 @@ const checkDue = require("./middlewares/serviceWorker");
 const cors = require("cors");
 const credentials = require("./middlewares/credentials");
 const corsOptions = require("./config/corsOptions");
-const { useTreblle } = require("treblle");
+// const { useTreblle } = require("treblle");
 
 app.use(
   session({
@@ -39,10 +39,10 @@ app.use(credentials);
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
-useTreblle(app, {
-  apiKey: process.env.TREBBLE_API_KEY,
-  projectId: process.env.TREBBLE_PROJECTID,
-});
+// useTreblle(app, {
+//   apiKey: process.env.TREBBLE_API_KEY,
+//   projectId: process.env.TREBBLE_PROJECTID,
+// });
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: true }));
 // setInterval(checkDue, 60 * 1000);
@@ -52,6 +52,18 @@ const user = require("./routes/userRoute");
 const chat = require("./routes/chatRoute");
 const message = require("./routes/messageRoute.js");
 const task = require("./routes/taskRoute");
+
+
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: true,
+    message: "You probably shouldn't be here, but...",
+    data: {
+      service: "teamit-api",
+      version: "1.0",
+    },
+  });
+});
 
 //Route
 app.use("/api/v1/user", user);
