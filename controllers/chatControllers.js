@@ -271,7 +271,8 @@ exports.removeGroupIcon = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.makeGroupAdmin = catchAsyncErrors(async (req, res, next) => {
-  const { chatId, userId } = req.params;
+  const { chatId } = req.params;
+  const {userId} = req.body
 
   if (!chatId || !userId)
     return next(new ErrorHandler("Required Body not provided", 400));
@@ -346,7 +347,6 @@ exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Chat Not Found", 404));
   }
   const checkExistingAdmin = updateChat.groupAdmin.find((user) => {
-
     return user._id.toString() === req.user._id.toString();
   });
   if (!checkExistingAdmin)
@@ -382,7 +382,7 @@ exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
 
 exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
   const { chatId } = req.body;
-  const users = JSON.parse(req.body.users);
+  const users = req.body.users;
 
   const chat = await Chat.findById(chatId);
   if (!chat) {
@@ -501,8 +501,8 @@ exports.removeFromGroup = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.exitGroup = catchAsyncErrors(async (req, res, next) => {
-  const { chatId } = req.body;
-  const chat = await Chat.findById(chatId);
+  const { group } = req.query;
+  const chat = await Chat.findById(group);
 
   if (!chat) return next(new ErrorHandler("Chat not found", 404));
 
@@ -513,7 +513,7 @@ exports.exitGroup = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("User does not exist in group", 400));
 
   await Chat.findByIdAndUpdate(
-    chatId,
+    group,
     {
       $pull: { users: req.user._id },
     },
@@ -525,7 +525,7 @@ exports.exitGroup = catchAsyncErrors(async (req, res, next) => {
       message: `${req.user.username} left the Group`,
       type: "Group Activity",
     },
-    chat: chatId,
+    chat: group,
   };
 
   try {
@@ -537,7 +537,7 @@ exports.exitGroup = catchAsyncErrors(async (req, res, next) => {
       select: "username avatar email",
     });
 
-    await Chat.findByIdAndUpdate(req.body.chatId, {
+    await Chat.findByIdAndUpdate(group, {
       latestMessage: message,
     });
     await chat.save();
