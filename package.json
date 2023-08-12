@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "nodemon server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "start:docker": "DOCKER=true docker-compose up"
   },
   "repository": {
     "type": "git",

@@ -660,7 +660,7 @@ exports.addMembersToCard = catchAsyncErrors(async (req, res, next) => {
   await card.save();
   for (let i = 0; i < selectedUsers.length; i++) {
     const user = await User.findById(selectedUsers[i]);
-    console.log(selectedUsers[i]);
+  
     await sendEmail({
       email: `${user.username} <${user.email}>`,
       subject: "Assigned to Card",
@@ -961,7 +961,6 @@ async function updateCardCompletionStatus(cardId) {
   }
 
   const checklistItemIds = card.checklist;
-  console.log(checklistItemIds);
 
   const areAllCompleted = await Promise.all(
     checklistItemIds.map(async (itemId) => {
