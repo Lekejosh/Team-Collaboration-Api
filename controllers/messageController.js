@@ -5,12 +5,10 @@ const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const cloudinary = require("cloudinary");
 
-//TODO: Fix send document to support any type of document format
-//TODO: Group Admin to add and remove Group Icons
 exports.sendMessage = catchAsyncErrors(async (req, res, next) => {
   const { content, chatId } = req.body;
   if (!content) {
-    return console.log("No Content Provided");
+    return 
   }
   if (!chatId) return next(new ErrorHandler("Chat Id not provided", 401));
   var newMessage = {

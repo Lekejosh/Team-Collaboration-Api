@@ -17,8 +17,18 @@ process.on("uncaughtException", (err) => {
   process.exit(1);
 });
 mongoose.set("strictQuery", true);
+
+const isDocker = process.env.DOCKER === "true";
+
+// MongoDB connection URL
+const mongoURL = isDocker
+  ? `${process.env.DB_URI}/${process.env.DB_NAME}`
+  : `${process.env.DB_URI_1}/${process.env.DB_NAME}`;
+
+
+
 mongoose
-  .connect(`${process.env.DB_URI}/${process.env.DB_NAME}`)
+  .connect(mongoURL)
   .catch((err) => {
     console.error(err);
   });
