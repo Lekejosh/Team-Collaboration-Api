@@ -21,6 +21,12 @@ const taskSchema = new mongoose.Schema(
         type: Date,
       },
     },
+    members: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
 
     lastEditedBy: [
       {

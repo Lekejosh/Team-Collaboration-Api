@@ -1,26 +1,16 @@
 const Board = require("../models/boardModel");
 const User = require("../models/userModel");
 const Card = require("../models/cardModel");
-const Checklist = require("../models/checklistModel");
 const Chat = require("../models/chatModel");
+const Checklist = require("../models/checklistModel");
 const Task = require("../models/taskModel");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const ErrorHandler = require("../utils/errorHandler");
 const sendEmail = require("../utils/sendMail");
+const Activity = require("../models/activityModel");
+const Message = require("../models/messageModel");
 exports.createBoard = catchAsyncErrors(async (req, res, next) => {
   const { groupId } = req.params;
-
-  if (!groupId) {
-    const { title, background } = req.body;
-    const board = await Board.create({
-      title,
-      type: "private",
-      background,
-      createdBy: req.user._id,
-    });
-    return res.status(201).json({ success: true, board });
-  }
-
   const { title, background, users } = req.body;
 
   const formattedUsers = JSON.stringify(users);
@@ -35,14 +25,56 @@ exports.createBoard = catchAsyncErrors(async (req, res, next) => {
   }
 
   if (!group.isGroupChat) {
-    return next(new ErrorHandler("This is not a group chat", 400));
+    const board = await Board.create({
+      title,
+      type: "private",
+      members: members,
+      background,
+      createdBy: req.user._id,
+    });
+    await Activity.create({
+      chatId: groupId,
+      activites: {
+        description: `${req.user.username}, Created a new board,named: ${title}`,
+      },
+    });
+    var newMessage = {
+      sender: req.user._id,
+      content: {
+        message: `${req.user.username}, Created a new board,named: ${title}`,
+        type: "Group Activity",
+      },
+      chat: groupId,
+    };
+
+    group.workspace.push(board._id);
+    await group.save();
+
+    await board.populate("members", "firstName lastName username avatar");
+
+    var message = await Message.create(newMessage);
+    message = await message.populate("sender", "username avatar");
+    message = await message.populate("chat");
+    message = await User.populate(message, {
+      path: "chat.users",
+      select: "username avatar email",
+    });
+
+    await Chat.findByIdAndUpdate(groupId, {
+      latestMessage: message,
+    });
+
+    return res.status(201).json({ success: true, board });
   }
 
   const groupAdmin = group.groupAdmin.toString();
 
   if (req.user._id.toString() !== groupAdmin) {
     return next(
-      new ErrorHandler("You are not authorized to create a workspace", 401)
+      new ErrorHandler(
+        "You are not authorized to create a workspace or you're not the group Admin",
+        401
+      )
     );
   }
 
@@ -87,14 +119,41 @@ exports.createBoard = catchAsyncErrors(async (req, res, next) => {
     select: "-password",
   });
 
+  await Activity.create({
+    chatId: groupId,
+    activites: {
+      description: `${req.user.username}, Created a new board,named: ${title}`,
+    },
+  });
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username}, Created a new board,named: ${title}`,
+      type: "Group Activity",
+    },
+    chat: groupId,
+  };
+  var message = await Message.create(newMessage);
+  message = await message.populate("sender", "username avatar");
+  message = await message.populate("chat");
+  message = await User.populate(message, {
+    path: "chat.users",
+    select: "username avatar email",
+  });
+
+  await Chat.findByIdAndUpdate(groupId, {
+    latestMessage: message,
+  });
+
   res.status(201).json({ success: true, board });
 });
 
 exports.removeMemberFromBoard = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
+  const { groupId } = req.query;
 
-  if (!id) {
-    return next(new ErrorHandler("Board Id not specified", 404));
+  if (!id || !groupId) {
+    return next(new ErrorHandler("Required Parameters not specified", 404));
   }
 
   const board = await Board.findById(id).populate();
@@ -133,6 +192,32 @@ exports.removeMemberFromBoard = catchAsyncErrors(async (req, res, next) => {
 
   await board.save();
 
+  await Activity.create({
+    chatId: groupId,
+    activites: {
+      description: `${req.user.username}, Removed member(s) from board`,
+    },
+  });
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username}, Removed member(s) from board`,
+      type: "Group Activity",
+    },
+    chat: groupId,
+  };
+  var message = await Message.create(newMessage);
+  message = await message.populate("sender", "username avatar");
+  message = await message.populate("chat");
+  message = await User.populate(message, {
+    path: "chat.users",
+    select: "username avatar email",
+  });
+
+  await Chat.findByIdAndUpdate(groupId, {
+    latestMessage: message,
+  });
+
   res.status(200).json({
     success: true,
     message: "Members removed from the card successfully",
@@ -140,6 +225,10 @@ exports.removeMemberFromBoard = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.getBoard = catchAsyncErrors(async (req, res, next) => {
+  if (!req.params.id) {
+    return next(new ErrorHandler("Id not specified"));
+  }
+
   const board = await Board.findById(req.params.id).populate("tasks");
   if (!board) {
     return next(new ErrorHandler("Board not Found", 404));
@@ -159,6 +248,17 @@ exports.getAllBoard = catchAsyncErrors(async (req, res, next) => {
 
 exports.boardEdit = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
+  const { groupId } = req.query;
+
+  if (!id || !groupId) {
+    return next(new ErrorHandler("Required Parameters not specified", 422));
+  }
+
+  const oldBoard = await Board.findById(id);
+
+  if (!oldBoard) {
+    return next(new ErrorHandler("Board not found", 404));
+  }
 
   const { title, type, priority, background } = req.body;
 
@@ -172,11 +272,22 @@ exports.boardEdit = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Board not Found", 404));
   }
 
+  await Activity.create({
+    chatId: groupId,
+    activites: {
+      description: `${req.user.username}, Made an edit to board`,
+    },
+  });
+
   res.status(200).json({ success: true, board });
 });
 
 exports.deleteBoard = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
+
+  if (!id) {
+    return next(new ErrorHandler("Required Parameters not specified"));
+  }
   const board = await Board.findById(id);
 
   if (!board) {
@@ -196,12 +307,39 @@ exports.deleteBoard = catchAsyncErrors(async (req, res, next) => {
   }
   await board.remove();
 
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username}, Deleted the board`,
+      type: "Group Activity",
+    },
+    chat: groupId,
+  };
+  var message = await Message.create(newMessage);
+  message = await message.populate("sender", "username avatar");
+  message = await message.populate("chat");
+  message = await User.populate(message, {
+    path: "chat.users",
+    select: "username avatar email",
+  });
+
+  await Chat.findByIdAndUpdate(groupId, {
+    latestMessage: message,
+  });
+
   res.status(200).json({ success: true });
 });
 
 exports.createTask = catchAsyncErrors(async (req, res, next) => {
   const { boardId } = req.params;
+  const { groupId } = req.query;
+
+  if (!boardId || !groupId) {
+    return next(new ErrorHandler("Required Parameters not specified"));
+  }
   const { title } = req.body;
+  const chat = await Chat.findById(groupId);
+  const chatUsers = chat.users.map((user) => user._id);
 
   const board = await Board.findById(boardId);
   if (!board) {
@@ -211,10 +349,38 @@ exports.createTask = catchAsyncErrors(async (req, res, next) => {
     title,
     boardId,
     createdBy: { user: req.user._id, time: Date.now() },
+    members: chatUsers,
   });
 
   board.tasks.push(task._id);
   await board.save();
+
+  await Activity.create({
+    chatId: groupId,
+    activites: {
+      description: `${req.user.username}, Created a new Task, titled ${title}`,
+    },
+  });
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username}, Created a new Task, titled ${title}`,
+      type: "Group Activity",
+    },
+    chat: groupId,
+  };
+  var message = await Message.create(newMessage);
+  message = await message.populate("sender", "username avatar");
+  message = await message.populate("chat");
+  message = await User.populate(message, {
+    path: "chat.users",
+    select: "username avatar email",
+  });
+
+  await Chat.findByIdAndUpdate(groupId, {
+    latestMessage: message,
+  });
+
   res.status(201).json({
     success: true,
     task,
@@ -222,10 +388,14 @@ exports.createTask = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.getTasks = catchAsyncErrors(async (req, res, next) => {
-  const { boardId } = req.params;
-  const task = await Task.find({ boardId: boardId })
+  const { taskId } = req.params;
+
+  if (!taskId) {
+    return next(new ErrorHandler("Required Parameters not specified"));
+  }
+  const task = await Task.findById(taskId)
     .populate("cards")
-    .populate("assignedTo");
+    .populate("members", "firstName lastName avatar username");
 
   if (!task) {
     return next(new ErrorHandler("No Tasks Created", 404));
@@ -236,9 +406,10 @@ exports.getTasks = catchAsyncErrors(async (req, res, next) => {
 
 exports.editTask = catchAsyncErrors(async (req, res, next) => {
   const { taskId, boardId } = req.params;
+  const { groupId } = req.query;
   const { title } = req.body;
 
-  if (!taskId || !boardId) {
+  if (!taskId || !boardId || !groupId) {
     return next(new ErrorHandler("All parameters are required", 400));
   }
 
@@ -265,6 +436,14 @@ exports.editTask = catchAsyncErrors(async (req, res, next) => {
   task.lastEditedBy.unshift({ user: req.user._id, time: Date.now() });
   await task.save();
 
+  await Activity.create({
+    chatId: groupId,
+    taskId: taskId,
+    activites: {
+      description: `${req.user.username}, Edited a task title to ${title}`,
+    },
+  });
+
   res.status(200).json({
     success: true,
     task,
@@ -273,6 +452,12 @@ exports.editTask = catchAsyncErrors(async (req, res, next) => {
 
 exports.deleteTask = catchAsyncErrors(async (req, res, next) => {
   const { id, boardId } = req.params;
+  const { groupId } = req.query;
+
+  if (!id || !boardId || !groupId) {
+    return next(new ErrorHandler("Required Parameters not specified", 400));
+  }
+
   const task = await Task.findById(id);
 
   if (!task) {
@@ -296,6 +481,13 @@ exports.deleteTask = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Task not found in board", 404));
   }
 
+  await Activity.create({
+    chatId: groupId,
+    activites: {
+      description: `${req.user.username}, Deleted task ${task.title}`,
+    },
+  });
+
   tasks.splice(taskIndex, 1);
   await task.remove();
   await board.save();
@@ -306,24 +498,59 @@ exports.deleteTask = catchAsyncErrors(async (req, res, next) => {
 exports.createCard = catchAsyncErrors(async (req, res, next) => {
   const { title } = req.body;
   const { taskId } = req.params;
+  const { groupId } = req.query;
 
+  if (!taskId || !groupId) {
+    return next(new ErrorHandler("Required Parameters not specified", 400));
+  }
   const task = await Task.findById(taskId);
-
   if (!task) {
     return next(new ErrorHandler("Task not found", 404));
   }
-  const card = await Card.create({ title, createdBy: req.user._id });
+
+  const card = await Card.create({
+    title,
+    createdBy: req.user._id,
+  });
 
   task.cards.push(card._id);
   await task.save();
+
+  await Activity.create({
+    chatId: groupId,
+    taskId: taskId,
+    activites: {
+      description: `${req.user.username}, Created a task Card, titled ${title}`,
+    },
+  });
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username}, Created a task Card, titled ${title}`,
+      type: "Group Activity",
+    },
+    chat: groupId,
+  };
+  var message = await Message.create(newMessage);
+  message = await message.populate("sender", "username avatar");
+  message = await message.populate("chat");
+  message = await User.populate(message, {
+    path: "chat.users",
+    select: "username avatar email",
+  });
+
+  await Chat.findByIdAndUpdate(groupId, {
+    latestMessage: message,
+  });
 
   res.status(200).json({ success: true, message: "Created", data: card });
 });
 
 exports.editCard = catchAsyncErrors(async (req, res, next) => {
   const { cardId, boardId } = req.params;
+  const { groupId, taskId } = req.query;
 
-  if (!cardId || !boardId) {
+  if (!cardId || !boardId || !groupId || !taskId) {
     return next(new ErrorHandler("Parameters not Specified", 400));
   }
 
@@ -335,7 +562,7 @@ exports.editCard = catchAsyncErrors(async (req, res, next) => {
 
   const edit = {
     title: req.body.title,
-    description: req.body.descriptions,
+    description: req.body.description,
     watch: req.body.watch,
     startDate: req.body.startDate,
     dueDate: req.body.dueDate,
@@ -347,15 +574,44 @@ exports.editCard = catchAsyncErrors(async (req, res, next) => {
   if (!card) {
     return next(new ErrorHandler("Card does not exist", 404));
   }
+
+  await Activity.create({
+    chatId: groupId,
+    taskId: taskId,
+    activites: {
+      description: `${req.user.username}, Edited a task card`,
+    },
+  });
+
   res.status(200).json({ success: true, message: "Updated", data: card });
+});
+
+exports.getCard = catchAsyncErrors(async (req, res, next) => {
+  const { cardId, boardId } = req.params;
+
+  if (!cardId || !boardId) {
+    return next(new ErrorHandler("Parameters not Specified", 400));
+  }
+  const board = await Board.findById(boardId);
+
+  if (!board) {
+    return next(new ErrorHandler("Board not found", 404));
+  }
+  const card = await Card.findById(cardId)
+    .populate("checklist")
+    .populate("members");
+  if (!card) {
+    return next(new ErrorHandler("Card does not exist", 404));
+  }
+  res.status(200).json({ success: true, card });
 });
 
 exports.addMembersToCard = catchAsyncErrors(async (req, res, next) => {
   const { cardId, boardId } = req.params;
-  if (!cardId || !boardId) {
+  const { groupId, taskId } = req.query;
+  if (!cardId || !boardId || !groupId || !taskId) {
     return next(new ErrorHandler("Parameters not Specified", 400));
   }
-
   const board = await Board.findById(boardId);
 
   if (!board) {
@@ -404,20 +660,50 @@ exports.addMembersToCard = catchAsyncErrors(async (req, res, next) => {
   await card.save();
   for (let i = 0; i < selectedUsers.length; i++) {
     const user = await User.findById(selectedUsers[i]);
+    console.log(selectedUsers[i]);
     await sendEmail({
       email: `${user.username} <${user.email}>`,
       subject: "Assigned to Card",
       html: `Dear <b>${user.lastName} ${user.firstName}</b>, \n\n\n\n You've been assigned to <b>Card</b> Task Board`,
     });
   }
+
+  await Activity.create({
+    chatId: groupId,
+    taskId: taskId,
+    activites: {
+      description: `${req.user.username}, Added member(s) to task Card ${card.title}`,
+    },
+  });
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username}, Added member(s) to task Card ${card.title}`,
+      type: "Group Activity",
+    },
+    chat: groupId,
+  };
+  var message = await Message.create(newMessage);
+  message = await message.populate("sender", "username avatar");
+  message = await message.populate("chat");
+  message = await User.populate(message, {
+    path: "chat.users",
+    select: "username avatar email",
+  });
+
+  await Chat.findByIdAndUpdate(groupId, {
+    latestMessage: message,
+  });
+
   res.status(200).json({ success: true, message: "User(s) added to card" });
 });
 
 exports.removeMemberFromCard = catchAsyncErrors(async (req, res, next) => {
   const { cardId } = req.params;
+  const { groupId, taskId } = req.query;
 
-  if (!cardId) {
-    return next(new ErrorHandler("Card Id not specified", 404));
+  if (!cardId || !groupId || !taskId) {
+    return next(new ErrorHandler("Required Parameters not specified", 404));
   }
 
   const card = await Card.findById(cardId);
@@ -455,6 +741,33 @@ exports.removeMemberFromCard = catchAsyncErrors(async (req, res, next) => {
 
   await card.save();
 
+  await Activity.create({
+    chatId: groupId,
+    taskId: taskId,
+    activites: {
+      description: `${req.user.username}, Removed member(s) from task Card ${card.title}`,
+    },
+  });
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username}, Removed member(s) from task Card ${card.title}`,
+      type: "Group Activity",
+    },
+    chat: groupId,
+  };
+  var message = await Message.create(newMessage);
+  message = await message.populate("sender", "username avatar");
+  message = await message.populate("chat");
+  message = await User.populate(message, {
+    path: "chat.users",
+    select: "username avatar email",
+  });
+
+  await Chat.findByIdAndUpdate(groupId, {
+    latestMessage: message,
+  });
+
   res.status(200).json({
     success: true,
     message: "Member(s) removed from the card successfully",
@@ -463,9 +776,10 @@ exports.removeMemberFromCard = catchAsyncErrors(async (req, res, next) => {
 
 exports.deleteCard = catchAsyncErrors(async (req, res, next) => {
   const { cardId, taskId } = req.params;
+  const { groupId } = req.query;
 
-  if (!cardId) {
-    return next(new ErrorHandler("CardId not specified", 400));
+  if (!cardId || !taskId || !groupId) {
+    return next(new ErrorHandler("Required Parameters not specified", 400));
   }
 
   const card = await Card.findById(cardId);
@@ -487,15 +801,24 @@ exports.deleteCard = catchAsyncErrors(async (req, res, next) => {
   await task.cards.pull(cardId);
   await task.save();
 
+  await Activity.create({
+    chatId: groupId,
+    taskId: taskId,
+    activites: {
+      description: `${req.user.username}, Deleted a task Card`,
+    },
+  });
+
   res.status(200).json({ success: true });
 });
 
 exports.createChecklists = catchAsyncErrors(async (req, res, next) => {
   const { cardId } = req.params;
+  const { groupId, taskId } = req.query;
   const { title } = req.body;
 
-  if (!cardId) {
-    return next(new ErrorHandler("CardId not specified", 400));
+  if (!cardId || !groupId || !taskId || !title) {
+    return next(new ErrorHandler("Required Parameters not specified", 400));
   }
 
   const card = await Card.findById(cardId);
@@ -508,7 +831,221 @@ exports.createChecklists = catchAsyncErrors(async (req, res, next) => {
   card.checklist.push(checklist._id);
   await card.save();
   await card.populate("checklist");
-  res.status(200).json({ success: true, card });
+
+  await Activity.create({
+    chatId: groupId,
+    taskId: taskId,
+    activites: {
+      description: `${req.user.username}, Created a card Checklist`,
+    },
+  });
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username}, Created a card Checklist`,
+      type: "Group Activity",
+    },
+    chat: groupId,
+  };
+  var message = await Message.create(newMessage);
+  message = await message.populate("sender", "username avatar");
+  message = await message.populate("chat");
+  message = await User.populate(message, {
+    path: "chat.users",
+    select: "username avatar email",
+  });
+
+  await Chat.findByIdAndUpdate(groupId, {
+    latestMessage: message,
+  });
+
+  res.status(201).json({ success: true, card });
+});
+
+exports.editChecklist = catchAsyncErrors(async (req, res, next) => {
+  const { checklistId } = req.params;
+  const { groupId, taskId } = req.query;
+  const { title } = req.body;
+
+  if (!checklistId || !groupId || !taskId || !title) {
+    return next(new ErrorHandler("Required Parameters not specified", 400));
+  }
+
+  const checklist = await Checklist.findById(checklistId);
+
+  if (!checklist) {
+    return next(new ErrorHandler("Checklist not found", 404));
+  }
+
+  await Activity.create({
+    chatId: groupId,
+    taskId: taskId,
+    activites: {
+      description: `${req.user.username}, Edited a card Checklist`,
+    },
+  });
+
+  res.status(200).json({ success: true });
+});
+
+exports.assignMemberToChecklist = catchAsyncErrors(async (req, res, next) => {
+  const { checklistId } = req.params;
+  const { groupId, taskId } = req.query;
+  const { users } = req.body;
+
+  if (!checklistId || !groupId || !taskId || !users) {
+    return next(new ErrorHandler("All Parameters must be specified"), 400);
+  }
+
+  const formattedUsers = JSON.stringify(users);
+  const members = JSON.parse(formattedUsers);
+  members.push(req.user._id.toString());
+});
+
+exports.deleteChecklist = catchAsyncErrors(async (req, res, next) => {
+  const { checklistId, cardId } = req.params;
+  const { groupId, taskId } = req.query;
+
+  if (!checklistId || !cardId || !groupId || !taskId) {
+    return next(new ErrorHandler("All Parameters must be specified", 400));
+  }
+
+  const checklist = await Checklist.findById(checklistId);
+
+  if (!checklist) {
+    return next(new ErrorHandler("Checklist not found", 404));
+  }
+
+  const card = await Card.findById(cardId);
+  if (!card) {
+    return next(new ErrorHandler("Card not found", 404));
+  }
+
+  await Activity.create({
+    chatId: groupId,
+    taskId: taskId,
+    activites: {
+      description: `${req.user.username}, Deleted a card Checklist`,
+    },
+  });
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: `${req.user.username}, Deleted a card Checklist`,
+      type: "Group Activity",
+    },
+    chat: groupId,
+  };
+  var message = await Message.create(newMessage);
+  message = await message.populate("sender", "username avatar");
+  message = await message.populate("chat");
+  message = await User.populate(message, {
+    path: "chat.users",
+    select: "username avatar email",
+  });
+
+  await Chat.findByIdAndUpdate(groupId, {
+    latestMessage: message,
+  });
+
+  card.checklist.pull(checklistId);
+  await card.save();
+  await checklist.deleteOne();
+  res.status(200).json({ success: true });
+});
+
+async function updateCardCompletionStatus(cardId) {
+  const card = await Card.findById(cardId);
+  if (!card) {
+    throw new ErrorHandler("Card not found", 404);
+  }
+
+  const checklistItemIds = card.checklist;
+  console.log(checklistItemIds);
+
+  const areAllCompleted = await Promise.all(
+    checklistItemIds.map(async (itemId) => {
+      const checklistItem = await Checklist.findById(itemId);
+      if (!checklistItem) {
+        await card.checklist.pull(itemId);
+        await card.save();
+      }
+      return checklistItem.isCompleted;
+    })
+  );
+
+  const allItemsCompleted = areAllCompleted.every((completed) => completed);
+
+  card.completed = allItemsCompleted;
+  await card.save();
+}
+
+
+exports.completeChecklist = catchAsyncErrors(async (req, res, next) => {
+  const { checklistId, cardId } = req.params;
+  const { completed, groupId, taskId } = req.query;
+  if (!cardId || !checklistId || !groupId || !taskId) {
+    return next(new ErrorHandler("All parameters not specified", 400));
+  }
+
+  const checklist = await Checklist.findById(checklistId);
+
+  if (!checklist) {
+    return next(new ErrorHandler("Checklist not found", 404));
+  }
+  const card = await Card.findById(cardId);
+
+  if (!card) {
+    return next(new ErrorHandler("Card not found", 404));
+  }
+
+  checklist.isCompleted = completed;
+  await checklist.save();
+
+  await card.save();
+
+  const activityDescription = `${req.user.username}, Marked a checklist as ${
+    completed === "true" ? "completed" : "incomplete"
+  } ${checklist.title}`;
+
+  await Activity.create({
+    chatId: groupId,
+    taskId: taskId,
+    activites: {
+      description: activityDescription,
+    },
+  });
+
+  await updateCardCompletionStatus(cardId);
+
+  var newMessage = {
+    sender: req.user._id,
+    content: {
+      message: activityDescription,
+      type: "Group Activity",
+    },
+    chat: groupId,
+  };
+  var message = await Message.create(newMessage);
+  message = await message.populate("sender", "username avatar");
+  message = await message.populate("chat");
+  message = await User.populate(message, {
+    path: "chat.users",
+    select: "username avatar email",
+  });
+
+  await Chat.findByIdAndUpdate(groupId, {
+    latestMessage: message,
+  });
+
+  res
+    .status(200)
+    .json({
+      success: true,
+      message: `Checklist is marked as ${
+        completed === "true" ? "completed" : "incomplete"
+      }`,
+    });
 });
 
 exports.addChecklistContent = catchAsyncErrors(async (req, res, next) => {

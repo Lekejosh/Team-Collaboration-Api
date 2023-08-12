@@ -12,6 +12,10 @@ const checklistSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  isCompleted: {
+    type: Boolean,
+    default: false,
+  },
   content: [
     {
       title: {

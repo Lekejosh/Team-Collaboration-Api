@@ -50,11 +50,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("typing", (room) => {
-    // // var chat = data;
-    // console.log(users);
-    // users.forEach((user) => {
     socket.in(room).emit("typing");
-    // });
   });
   socket.on("stop typing", (room) => socket.in(room).emit("stop typing"));
 
@@ -68,6 +64,51 @@ io.on("connection", (socket) => {
 
       socket.in(user._id).emit("message recieved", newMessageRecieved);
     });
+  });
+
+  socket.on("outgoing-voice-call", (data) => {
+    const sendUserSocket = data.to;
+    if (sendUserSocket) {
+      socket.to(sendUserSocket).emit("incoming-voice-call", {
+        from: data.from,
+        roomId: data.roomId,
+        callType: data.callType,
+      });
+    }
+  });
+
+  // Handle outgoing video call
+ socket.on("outgoing-video-call", (data) => {
+   const sendUserSocket = data.to;
+   if (sendUserSocket) {
+     socket.to(sendUserSocket).emit("incoming-video-call", {
+       from: data.from,
+       roomId: data.roomId,
+       callType: data.callType,
+     });
+   }
+ });
+
+  // Handle rejecting voice call
+  socket.on("reject-voice-call", (data) => {
+    const sendUserSocket = data.from;
+    if (sendUserSocket) {
+      socket.to(sendUserSocket).emit("voice-call-rejected");
+    }
+  });
+
+  // Handle rejecting video call
+  socket.on("reject-video-call", (data) => {
+    const sendUserSocket = data.from;
+    if (sendUserSocket) {
+      socket.to(sendUserSocket).emit("video-call-rejected");
+    }
+  });
+
+  // Handle accepting incoming call
+  socket.on("accept-incoming-call", (id) => {
+    const sendUserSocket = id;
+    socket.to(sendUserSocket).emit("accept-incoming-video-call");
   });
 
   socket.on("disconnect", () => {

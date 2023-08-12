@@ -69,7 +69,7 @@ exports.accessChat = catchAsyncErrors(async (req, res, next) => {
 exports.fetchChats = catchAsyncErrors(async (req, res, next) => {
   try {
     Chat.find({ users: { $elemMatch: { $eq: req.user._id } } })
-      .populate("users", "-password")
+      .populate("users", "firstName lastName username avatar")
       .populate("latestMessage")
       .sort({ updatedAt: -1 })
       .then(async (results) => {
@@ -175,7 +175,9 @@ exports.changeGroupIcon = catchAsyncErrors(async (req, res, next) => {
   );
 
   if (!checkExistingAdmin)
-    return next(new ErrorHandler("Specified user is not an Admin", 401));
+    return next(
+      new ErrorHandler("You're not an Admin or this is not a group chat", 401)
+    );
 
   if (chat.groupAvatar.public_id !== "default_image") {
     await cloudinary.v2.uploader.destroy(chat.groupAvatar.public_id);
@@ -233,9 +235,11 @@ exports.removeGroupIcon = catchAsyncErrors(async (req, res, next) => {
   );
 
   if (!checkExistingAdmin)
-    return next(new ErrorHandler("Specified user is not an Admin", 400));
+    return next(
+      new ErrorHandler("you're not an Admin or this is not a group chat", 400)
+    );
 
-  await cloudinary.v2.uploader.destroy(user.avatar.public_id);
+  await cloudinary.v2.uploader.destroy(chat.groupAvatar.public_id);
 
   chat.groupAvatar = {
     public_id: "default_image",
@@ -272,7 +276,7 @@ exports.removeGroupIcon = catchAsyncErrors(async (req, res, next) => {
 
 exports.makeGroupAdmin = catchAsyncErrors(async (req, res, next) => {
   const { chatId } = req.params;
-  const {userId} = req.body
+  const { userId } = req.body;
 
   if (!chatId || !userId)
     return next(new ErrorHandler("Required Body not provided", 400));
@@ -322,7 +326,9 @@ exports.removeGroupAdmin = catchAsyncErrors(async (req, res, next) => {
   );
 
   if (!checkExistingAdmin)
-    return next(new ErrorHandler("Specified user is not an Admin", 401));
+    return next(
+      new ErrorHandler("You're not an Admin or this is not a group chat", 401)
+    );
 
   await Chat.findByIdAndUpdate(
     chatId,
@@ -350,7 +356,9 @@ exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
     return user._id.toString() === req.user._id.toString();
   });
   if (!checkExistingAdmin)
-    return next(new ErrorHandler("You're not an Admin", 401));
+    return next(
+      new ErrorHandler("You're not an Admin or this is not a group chat", 403)
+    );
   var newMessage = {
     sender: req.user._id,
     content: {
@@ -382,7 +390,7 @@ exports.renameGroup = catchAsyncErrors(async (req, res, next) => {
 
 exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
   const { chatId } = req.body;
-  const users = req.body.users;
+  const users = JSON.parse(req.body.users);
 
   const chat = await Chat.findById(chatId);
   if (!chat) {
@@ -393,7 +401,9 @@ exports.addToGroup = catchAsyncErrors(async (req, res, next) => {
   );
 
   if (!checkExistingAdmin)
-    return next(new ErrorHandler("User is not an Admin", 401));
+    return next(
+      new ErrorHandler("You're not an Admin or this is not a group chat", 403)
+    );
 
   // Check if user already exists in the group
   const existingUser = chat.users.find(
@@ -454,7 +464,9 @@ exports.removeFromGroup = catchAsyncErrors(async (req, res, next) => {
   );
 
   if (!checkExistingAdmin)
-    return next(new ErrorHandler("User is not an Admin", 401));
+    return next(
+      new ErrorHandler("You're not an Admin or this is not a group chat", 401)
+    );
   // Check if user is not in the group
   const existingUser = chat.users.find(
     (user) => user.toString() === userId.toString()
@@ -505,21 +517,35 @@ exports.exitGroup = catchAsyncErrors(async (req, res, next) => {
   const chat = await Chat.findById(group);
 
   if (!chat) return next(new ErrorHandler("Chat not found", 404));
+  if (!chat.isGroupChat)
+    return next(new ErrorHandler("This is not a group chat", 403));
 
-  const checkExistingUser = await chat.users.find(
+  const userIsInGroup = chat.users.some(
     (user) => user._id.toString() === req.user._id.toString()
   );
-  if (!checkExistingUser)
+  if (!userIsInGroup)
     return next(new ErrorHandler("User does not exist in group", 400));
 
-  await Chat.findByIdAndUpdate(
-    group,
-    {
-      $pull: { users: req.user._id },
-    },
-    { new: true }
+  const userIsAdmin = chat.groupAdmin.some(
+    (user) => user._id.toString() === req.user._id.toString()
   );
-  var newMessage = {
+  const updateQuery = { $pull: { users: req.user._id } };
+
+  if (userIsAdmin) {
+    updateQuery["$pull"].groupAdmin = req.user._id;
+    const updatedChat = await Chat.findByIdAndUpdate(group, updateQuery, {
+      new: true,
+    });
+
+    if (updatedChat.groupAdmin.length === 0 && updatedChat.users.length > 0) {
+      updatedChat.groupAdmin.push(updatedChat.users[0]);
+      await updatedChat.save();
+    }
+  } else {
+    await Chat.findByIdAndUpdate(group, updateQuery, { new: true });
+  }
+
+  const newMessage = {
     sender: req.user._id,
     content: {
       message: `${req.user.username} left the Group`,
@@ -528,21 +554,18 @@ exports.exitGroup = catchAsyncErrors(async (req, res, next) => {
     chat: group,
   };
 
-  try {
-    var message = await Message.create(newMessage);
-    message = await message.populate("sender", "username avatar");
-    message = await message.populate("chat");
-    message = await User.populate(message, {
-      path: "chat.users",
-      select: "username avatar email",
-    });
+  var message = await Message.create(newMessage);
+  message = await message.populate("sender", "username avatar");
+  message = await message.populate("chat");
+  message = await User.populate(message, {
+    path: "chat.users",
+    select: "username avatar email",
+  });
 
-    await Chat.findByIdAndUpdate(group, {
-      latestMessage: message,
-    });
-    await chat.save();
-    res.status(200).json({ success: true, message });
-  } catch (error) {
-    return next(new ErrorHandler("Invalid Chat Id", 400));
-  }
+  await Chat.findByIdAndUpdate(group, {
+    latestMessage: message,
+  });
+  await chat.save();
+
+  res.status(200).json({ success: true, message });
 });

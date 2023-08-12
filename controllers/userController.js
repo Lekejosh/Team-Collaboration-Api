@@ -64,20 +64,7 @@ exports.register = catchAsyncErrors(async (req, res, next) => {
     avatar,
   });
 
-  // const newRefreshToken = jwt.sign(
-  //   { id: user._id },
-  //   process.env.REFRESH_TOKEN_SECRET,
-  //   { expiresIn: process.env.REFRESH_TOKEN_EXPIRE }
-  // );
 
-  // user.refreshToken = [newRefreshToken];
-  // user.save();
-  // res.cookie("refreshToken", newRefreshToken, {
-  //   httpOnly: true,
-  //   // sameSite: "none",
-  //   // secure: true,
-  //   maxAge: 24 * 60 * 60 * 1000,
-  // });
 
   user.getAccessToken();
 
@@ -720,74 +707,6 @@ exports.deactivateAccount = catchAsyncErrors(async (req, res, next) => {
     .status(200)
     .json({ success: true, message: "Account Deactivated Successfully" });
 });
-
-// exports.refreshToken = catchAsyncErrors(async (req, res, next) => {
-//   const cookies = req.cookies;
-//   if (!cookies?.refreshToken) {
-//     return next(new ErrorHandler("No Cookie present", 401));
-//   }
-
-//   const refreshToken = cookies.refreshToken;
-//   res.clearCookie("refreshToken", {
-//     httpOnly: true,
-//     // sameSite: "none",
-//     // secure: true,
-//   });
-
-//   const user = await User.findOne({ refreshToken: refreshToken });
-//   if (!user) {
-//     jwt.verify(
-//       refreshToken,
-//       process.env.REFRESH_TOKEN_SECRET,
-//       async (err, decoded) => {
-//         if (err) {
-//           return next(new ErrorHandler("Forbidden", 403));
-//         }
-//         const hackedUser = await User.findById(decoded.id);
-//         hackedUser.refreshToken = [];
-//         await hackedUser.save();
-//         return next(new ErrorHandler("Forbidden", 403));
-//       }
-//     );
-//   } else {
-//     const newRefresTokenArray = user.refreshToken.filter(
-//       (rt) => rt !== refreshToken
-//     );
-
-//     jwt.verify(
-//       refreshToken,
-//       process.env.REFRESH_TOKEN_SECRET,
-//       async (err, decoded) => {
-//         user.refreshToken = [...newRefresTokenArray];
-//         const result = await user.save();
-//         if (err || user._id.toString() !== decoded.id) {
-//           return next(new ErrorHandler("Forbidden", 403));
-//         }
-
-//         const accessToken = jwt.sign(
-//           { id: decoded.id },
-//           process.env.ACCESS_TOKEN_SECRET,
-//           { expiresIn: process.env.ACCESS_TOKEN_EXPIRE }
-//         );
-
-//         const newRefreshToken = jwt.sign(
-//           { id: user._id },
-//           process.env.REFRESH_TOKEN_SECRET,
-//           { expiresIn: process.env.REFRESH_TOKEN_EXPIRE }
-//         );
-//         user.refreshToken = [...newRefresTokenArray, newRefreshToken];
-//         await user.save();
-//         res.cookie("refreshToken", newRefreshToken, {
-//           httpOnly: true,
-//           // sameSite: "none",
-//           // secure: true,
-//           maxAge: 24 * 60 * 60 * 1000,
-//         });
-//         res.json({ accessToken });
-//       }
-//     );
-//   }
-// });
 
 exports.deleteAccount = catchAsyncErrors(async (req, res, next) => {
   const user = await User.findById(req.user._id);

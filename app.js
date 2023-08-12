@@ -28,13 +28,7 @@ app.use(
     },
   })
 );
-// const io = require('socket.io')(server,{
-//     cors: {
-//         origin: '*'
-//     }
-// });
 
-// io.on("Connection",(socket) => console.log("connected"))
 app.use(credentials);
 app.use(cors(corsOptions));
 app.use(cookieParser());
@@ -45,14 +39,13 @@ app.use(express.json());
 // });
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: true }));
-// setInterval(checkDue, 60 * 1000);
 setInterval(checkDue, 60 * 1000);
 
 const user = require("./routes/userRoute");
 const chat = require("./routes/chatRoute");
 const message = require("./routes/messageRoute.js");
 const task = require("./routes/taskRoute");
-
+const activity = require("./routes/activityRoute");
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -70,6 +63,7 @@ app.use("/api/v1/user", user);
 app.use("/api/v1/chat", chat);
 app.use("/api/v1/message", message);
 app.use("/api/v1/task", task);
+app.use("/api/v1/activity", activity);
 
 app.use(errorMiddleware);
 

@@ -24,7 +24,6 @@ const {
   resetPassword,
   updatePassword,
   deactivateAccount,
-  // refreshToken,
   deleteAccount,
   checkUser,
   allUsers,
@@ -78,6 +77,5 @@ router.route("/search").get(isAuthenticatedUser, checkDeactivated, searchUsers);
 router.route('/').get(isAuthenticatedUser,checkDeactivated,allUsers)
 router.route("/deactivate").post(isAuthenticatedUser, deactivateAccount);
 router.route("/delete-account").delete(isAuthenticatedUser, deleteAccount);
-// router.route("/refresh-token").get(refreshToken);
 
 module.exports = router;

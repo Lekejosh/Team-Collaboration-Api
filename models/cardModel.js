@@ -2,8 +2,8 @@ const mongoose = require("mongoose");
 
 const cardSchema = new mongoose.Schema(
   {
-    title:{
-      type:String
+    title: {
+      type: String,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -57,6 +57,10 @@ const cardSchema = new mongoose.Schema(
     },
     dueDateReminder: {
       type: Date,
+    },
+    completed: {
+      type: Boolean,
+      default: false,
     },
   },
   {
