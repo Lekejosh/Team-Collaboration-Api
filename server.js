@@ -26,6 +26,7 @@ const mongoURL = isDocker
   : `${process.env.DB_URI_1}/${process.env.DB_NAME}`;
 
 
+  console.log(mongoURL)
 
 mongoose
   .connect(mongoURL)

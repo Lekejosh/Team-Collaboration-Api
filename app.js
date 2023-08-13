@@ -14,7 +14,8 @@ const checkDue = require("./middlewares/serviceWorker");
 const cors = require("cors");
 const credentials = require("./middlewares/credentials");
 const corsOptions = require("./config/corsOptions");
-// const { useTreblle } = require("treblle");
+const helmet = require('helmet')
+const rateLimit = require('express-rate-limit')
 
 app.use(
   session({
@@ -33,10 +34,13 @@ app.use(credentials);
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
-// useTreblle(app, {
-//   apiKey: process.env.TREBBLE_API_KEY,
-//   projectId: process.env.TREBBLE_PROJECTID,
-// });
+app.use(helmet())
+const limiter = rateLimit({
+  windowMs: 1 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: true }));
 setInterval(checkDue, 60 * 1000);
