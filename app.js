@@ -63,7 +63,7 @@ app.use((req, res, next) => {
   // res.setHeader(
   //   "Access-Control-Allow-Origin",
   //   "https://master--magenta-shortbread-105779.netlify.app/"
-  );
+  // );
 
   next();
 });
