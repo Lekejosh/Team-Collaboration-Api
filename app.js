@@ -18,7 +18,7 @@ const treblle = require("@treblle/express");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 
-app.enable('trust proxy');
+app.enable("trust proxy");
 app.use(
   session({
     secret: "egeGBTCTEcgwrtgc54cg66666666h.b/3/3.b/[g[er2",
@@ -71,7 +71,7 @@ app.use((req, res, next) => {
 app.use(credentials);
 app.use(
   cors({
-    origin: "https://master--magenta-shortbread-105779.netlify.app/",
+    origin: "https://team-collaboration.onrender.com",
   })
 );
 app.use(cookieParser());
