@@ -69,11 +69,7 @@ app.use((req, res, next) => {
 });
 
 app.use(credentials);
-app.use(
-  cors({
-    origin: "https://team-collaboration.onrender.com",
-  })
-);
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 app.use(
