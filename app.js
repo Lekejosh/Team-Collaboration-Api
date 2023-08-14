@@ -69,7 +69,11 @@ app.use((req, res, next) => {
 });
 
 app.use(credentials);
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: "https://master--magenta-shortbread-105779.netlify.app/",
+  })
+);
 app.use(cookieParser());
 app.use(express.json());
 app.use(
