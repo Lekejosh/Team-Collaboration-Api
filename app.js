@@ -48,7 +48,7 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use(limiter());
+app.use(limiter);
 app.setInterval(checkDue, 60 * 1000);
 
 const user = require("./routes/userRoute");
