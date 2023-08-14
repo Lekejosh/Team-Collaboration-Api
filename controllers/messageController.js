@@ -8,9 +8,12 @@ const cloudinary = require("cloudinary");
 exports.sendMessage = catchAsyncErrors(async (req, res, next) => {
   const { content, chatId } = req.body;
   if (!content) {
-    return 
+    return;
   }
-  if (!chatId) return next(new ErrorHandler("Chat Id not provided", 401));
+  if (!chatId) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
+
   var newMessage = {
     sender: req.user._id,
     content: {
@@ -45,6 +48,9 @@ exports.sendAudioMessage = catchAsyncErrors(async (req, res, next) => {
     resource_type: "video",
   });
   const { chatId } = req.body;
+  if (!chatId) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
 
   var newAudioMessage = {
     sender: req.user._id,
@@ -74,6 +80,9 @@ exports.sendVideoMessage = catchAsyncErrors(async (req, res, next) => {
     resource_type: "video",
   });
   const { chatId } = req.body;
+  if (!chatId) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
 
   var newVideoMessage = {
     sender: req.user._id,
@@ -103,6 +112,9 @@ exports.sendImageMessage = catchAsyncErrors(async (req, res, next) => {
     folder: "Chat_app_images",
   });
   const { chatId } = req.body;
+  if (!chatId) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
 
   var newMessage = {
     sender: req.user._id,
@@ -134,6 +146,10 @@ exports.sendDocumentMessage = catchAsyncErrors(async (req, res, next) => {
   });
   const { chatId } = req.body;
 
+  if (!chatId) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
+
   var newMessage = {
     sender: req.user._id,
     document: { public_id: myCloud.public_id, url: myCloud.url },
@@ -159,14 +175,20 @@ exports.sendDocumentMessage = catchAsyncErrors(async (req, res, next) => {
 
 exports.allMessages = catchAsyncErrors(async (req, res, next) => {
   try {
-    const messages = await Message.find({ chat: req.params.chatId })
+    const { chatId } = req.params;
+
+    if (!chatId) {
+      return next(new ErrorHandler("Required parameters not Provided", 400));
+    }
+
+    const messages = await Message.find({ chat: chatId })
       .populate("sender", "username avatar email")
       .populate("chat");
 
-    const chat = await Chat.findById(req.params.chatId)
+    const chat = await Chat.findById(chatId)
       .populate("users")
       .populate("groupAdmin", "username avatar")
-      .populate("workspace","title");
+      .populate("workspace", "title");
 
     res.status(200).json({ messages, chat });
   } catch (error) {
@@ -177,7 +199,8 @@ exports.allMessages = catchAsyncErrors(async (req, res, next) => {
 exports.isReadMessage = catchAsyncErrors(async (req, res, next) => {
   const { messageId } = req.params;
 
-  if (!messageId) return next(new ErrorHandler("Message Id not provided", 401));
+  if (!messageId)
+    return next(new ErrorHandler("Required parameters not Provided", 400));
 
   const message = await Message.findById(messageId);
 
@@ -197,9 +220,14 @@ exports.isReadMessage = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, message });
 });
 exports.deleteMessageFromSelf = catchAsyncErrors(async (req, res, next) => {
+  const { chatId, messageId } = req.params;
+
+  if (!chatId || !messageId) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
   const message = await Message.findOne({
-    chat: req.params.chatId,
-    _id: req.params.messageId,
+    chat: chatId,
+    _id: messageId,
   })
     .populate("sender", "username avatar email")
     .populate("chat");
@@ -226,9 +254,15 @@ exports.deleteMessageFromSelf = catchAsyncErrors(async (req, res, next) => {
 
 exports.deleteMessageFromEverybody = catchAsyncErrors(
   async (req, res, next) => {
+    const { chatId, messageId } = req.params;
+
+    if (!chatId || !messageId) {
+      return next(new ErrorHandler("Required parameters not Provided", 400));
+    }
+
     const message = await Message.findOne({
-      chat: req.params.chatId,
-      _id: req.params.messageId,
+      chat: chatId,
+      _id: messageId,
     })
       .populate("sender", "username avatar email")
       .populate("chat");

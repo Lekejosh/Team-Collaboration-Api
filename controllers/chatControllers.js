@@ -8,7 +8,7 @@ const cloudinary = require("cloudinary");
 exports.accessChat = catchAsyncErrors(async (req, res, next) => {
   const { userId } = req.body;
   if (!userId) {
-    return next(new ErrorHandler("User Id not provided", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
   var isChat = await Chat.find({
     isGroupChat: false,
@@ -93,7 +93,7 @@ exports.fetchChats = catchAsyncErrors(async (req, res, next) => {
 
 exports.createGroupChat = catchAsyncErrors(async (req, res, next) => {
   if (!req.body.users || !req.body.name) {
-    return next(new ErrorHandler("Please Fill out the fields", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
   var users = JSON.parse(req.body.users);
 
@@ -155,6 +155,11 @@ exports.createGroupChat = catchAsyncErrors(async (req, res, next) => {
 
 exports.changeGroupIcon = catchAsyncErrors(async (req, res, next) => {
   const { chatId } = req.params;
+
+  if (!chatId) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
+
 
   const chat = await Chat.findById(chatId);
 
@@ -224,6 +229,9 @@ exports.changeGroupIcon = catchAsyncErrors(async (req, res, next) => {
 
 exports.removeGroupIcon = catchAsyncErrors(async (req, res, next) => {
   const { chatId } = req.params;
+if (!chatId) {
+  return next(new ErrorHandler("Required parameters not Provided", 400));
+}
 
   const chat = await Chat.findById(chatId);
 
@@ -279,7 +287,7 @@ exports.makeGroupAdmin = catchAsyncErrors(async (req, res, next) => {
   const { userId } = req.body;
 
   if (!chatId || !userId)
-    return next(new ErrorHandler("Required Body not provided", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
 
   const chat = await Chat.findById(chatId);
 
@@ -305,7 +313,7 @@ exports.removeGroupAdmin = catchAsyncErrors(async (req, res, next) => {
   const { chatId, userId } = req.params;
 
   if (!chatId || !userId)
-    return next(new ErrorHandler("Required Body not provided", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
 
   const chat = await Chat.findById(chatId);
 

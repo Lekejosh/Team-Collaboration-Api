@@ -13,6 +13,10 @@ exports.createBoard = catchAsyncErrors(async (req, res, next) => {
   const { groupId } = req.params;
   const { title, background, users } = req.body;
 
+  if(!groupId || !title || !users){
+    return next(new ErrorHandler("Required parameters not Provided",400));
+  }
+
   const formattedUsers = JSON.stringify(users);
 
   const members = JSON.parse(formattedUsers);
@@ -153,7 +157,7 @@ exports.removeMemberFromBoard = catchAsyncErrors(async (req, res, next) => {
   const { groupId } = req.query;
 
   if (!id || !groupId) {
-    return next(new ErrorHandler("Required Parameters not specified", 404));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const board = await Board.findById(id).populate();
@@ -226,7 +230,7 @@ exports.removeMemberFromBoard = catchAsyncErrors(async (req, res, next) => {
 
 exports.getBoard = catchAsyncErrors(async (req, res, next) => {
   if (!req.params.id) {
-    return next(new ErrorHandler("Id not specified"));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const board = await Board.findById(req.params.id).populate("tasks");
@@ -251,7 +255,7 @@ exports.boardEdit = catchAsyncErrors(async (req, res, next) => {
   const { groupId } = req.query;
 
   if (!id || !groupId) {
-    return next(new ErrorHandler("Required Parameters not specified", 422));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const oldBoard = await Board.findById(id);
@@ -286,7 +290,7 @@ exports.deleteBoard = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
 
   if (!id) {
-    return next(new ErrorHandler("Required Parameters not specified"));
+    return next(new ErrorHandler("Required parameters not Provided",400));
   }
   const board = await Board.findById(id);
 
@@ -335,7 +339,7 @@ exports.createTask = catchAsyncErrors(async (req, res, next) => {
   const { groupId } = req.query;
 
   if (!boardId || !groupId) {
-    return next(new ErrorHandler("Required Parameters not specified"));
+    return next(new ErrorHandler("Required parameters not Provided",400));
   }
   const { title } = req.body;
   const chat = await Chat.findById(groupId);
@@ -391,7 +395,7 @@ exports.getTasks = catchAsyncErrors(async (req, res, next) => {
   const { taskId } = req.params;
 
   if (!taskId) {
-    return next(new ErrorHandler("Required Parameters not specified"));
+    return next(new ErrorHandler("Required parameters not Provided",400));
   }
   const task = await Task.findById(taskId)
     .populate("cards")
@@ -410,7 +414,7 @@ exports.editTask = catchAsyncErrors(async (req, res, next) => {
   const { title } = req.body;
 
   if (!taskId || !boardId || !groupId) {
-    return next(new ErrorHandler("All parameters are required", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const board = await Board.findById(boardId);
@@ -455,7 +459,7 @@ exports.deleteTask = catchAsyncErrors(async (req, res, next) => {
   const { groupId } = req.query;
 
   if (!id || !boardId || !groupId) {
-    return next(new ErrorHandler("Required Parameters not specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const task = await Task.findById(id);
@@ -500,8 +504,8 @@ exports.createCard = catchAsyncErrors(async (req, res, next) => {
   const { taskId } = req.params;
   const { groupId } = req.query;
 
-  if (!taskId || !groupId) {
-    return next(new ErrorHandler("Required Parameters not specified", 400));
+  if (!taskId || !groupId || !title) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
   const task = await Task.findById(taskId);
   if (!task) {
@@ -551,7 +555,7 @@ exports.editCard = catchAsyncErrors(async (req, res, next) => {
   const { groupId, taskId } = req.query;
 
   if (!cardId || !boardId || !groupId || !taskId) {
-    return next(new ErrorHandler("Parameters not Specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const board = await Board.findById(boardId);
@@ -590,7 +594,7 @@ exports.getCard = catchAsyncErrors(async (req, res, next) => {
   const { cardId, boardId } = req.params;
 
   if (!cardId || !boardId) {
-    return next(new ErrorHandler("Parameters not Specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
   const board = await Board.findById(boardId);
 
@@ -610,7 +614,7 @@ exports.addMembersToCard = catchAsyncErrors(async (req, res, next) => {
   const { cardId, boardId } = req.params;
   const { groupId, taskId } = req.query;
   if (!cardId || !boardId || !groupId || !taskId) {
-    return next(new ErrorHandler("Parameters not Specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
   const board = await Board.findById(boardId);
 
@@ -703,7 +707,7 @@ exports.removeMemberFromCard = catchAsyncErrors(async (req, res, next) => {
   const { groupId, taskId } = req.query;
 
   if (!cardId || !groupId || !taskId) {
-    return next(new ErrorHandler("Required Parameters not specified", 404));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const card = await Card.findById(cardId);
@@ -779,7 +783,7 @@ exports.deleteCard = catchAsyncErrors(async (req, res, next) => {
   const { groupId } = req.query;
 
   if (!cardId || !taskId || !groupId) {
-    return next(new ErrorHandler("Required Parameters not specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const card = await Card.findById(cardId);
@@ -894,7 +898,7 @@ exports.assignMemberToChecklist = catchAsyncErrors(async (req, res, next) => {
   const { users } = req.body;
 
   if (!checklistId || !groupId || !taskId || !users) {
-    return next(new ErrorHandler("All Parameters must be specified"), 400);
+    return next(new ErrorHandler("Required parameters not Provided"), 400);
   }
 
   const formattedUsers = JSON.stringify(users);
@@ -907,7 +911,7 @@ exports.deleteChecklist = catchAsyncErrors(async (req, res, next) => {
   const { groupId, taskId } = req.query;
 
   if (!checklistId || !cardId || !groupId || !taskId) {
-    return next(new ErrorHandler("All Parameters must be specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const checklist = await Checklist.findById(checklistId);
@@ -984,7 +988,7 @@ exports.completeChecklist = catchAsyncErrors(async (req, res, next) => {
   const { checklistId, cardId } = req.params;
   const { completed, groupId, taskId } = req.query;
   if (!cardId || !checklistId || !groupId || !taskId) {
-    return next(new ErrorHandler("All parameters not specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const checklist = await Checklist.findById(checklistId);
@@ -1058,7 +1062,7 @@ exports.addChecklistContent = catchAsyncErrors(async (req, res, next) => {
   const members = JSON.parse(addMembers);
 
   if (!cardId || !checklistId) {
-    return next(new ErrorHandler("All parameters not specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const card = await Card.findById(cardId);
@@ -1147,7 +1151,7 @@ exports.editChecklistContent = catchAsyncErrors(async (req, res, next) => {
   const { cardId, checklistId, contentId } = req.params;
 
   if (!cardId || !checklistId || !contentId) {
-    return next(new ErrorHandler("IDs not specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const card = await Card.findById(cardId);
@@ -1208,7 +1212,7 @@ exports.addMembersToContent = catchAsyncErrors(async (req, res, next) => {
   const { cardId, checklistId, contentId } = req.params;
 
   if (!cardId || !checklistId || !contentId) {
-    return next(new ErrorHandler("IDs not specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const card = await Card.findById(cardId);
@@ -1293,7 +1297,7 @@ exports.removeMemberFromContent = catchAsyncErrors(async (req, res, next) => {
   const { cardId, checklistId, contentId } = req.params;
 
   if (!cardId || !checklistId || !contentId) {
-    return next(new ErrorHandler("IDs not specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const card = await Card.findById(cardId);
@@ -1360,7 +1364,7 @@ exports.onComplete = catchAsyncErrors(async (req, res, next) => {
   const { cardId, checklistId, contentId } = req.params;
 
   if (!cardId || !checklistId || !contentId)
-    return next(new ErrorHandler("IDs not specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
 
   const card = await Card.findById(cardId);
   if (!card) return next(new ErrorHandler("Card not found", 404));
@@ -1407,7 +1411,7 @@ exports.onComplete = catchAsyncErrors(async (req, res, next) => {
 exports.deleteChecklistContent = catchAsyncErrors(async (req, res, next) => {
   const { checklistId, cardId, contentId } = req.params;
   if (!checklistId || !cardId || !contentId) {
-    return next(new ErrorHandler("All parameters must be specified", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const card = await Card.findById(cardId);
