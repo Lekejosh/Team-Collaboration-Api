@@ -14,10 +14,11 @@ const checkDue = require("./middlewares/serviceWorker");
 const cors = require("cors");
 const credentials = require("./middlewares/credentials");
 const corsOptions = require("./config/corsOptions");
-const { useTreblle } = require("treblle");
+const treblle = require("@treblle/express");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 
+app.enable("trust proxy");
 app.use(
   session({
     secret: "egeGBTCTEcgwrtgc54cg66666666h.b/3/3.b/[g[er2",
@@ -25,20 +26,60 @@ app.use(
     saveUninitialized: true,
     cookie: {
       httpOnly: true,
+      secure: true,
+      sameSite: "None",
       maxAge: 1000 + 60 * 60 * 24 * 7,
-      sameSite: "strict",
     },
   })
 );
+
+app.use((req, res, next) => {
+  // Content-Security-Policy
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'none'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self' https:; upgrade-insecure-requests"
+  );
+
+  // X-Frame-Options
+  res.setHeader("X-Frame-Options", "DENY");
+
+  // Referrer-Policy
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+
+  // X-Content-Type-Options
+  res.setHeader("X-Content-Type-Options", "nosniff");
+
+  // X-XSS-Protection
+  res.setHeader("X-XSS-Protection", "0");
+
+  // Strict-Transport-Security
+  res.setHeader(
+    "Strict-Transport-Security",
+    "max-age=15552000; includeSubDomains"
+  );
+
+  res.setHeader("Content-Type", "application/json");
+
+  // Access-Control-Allow-Origin
+  // res.setHeader(
+  //   "Access-Control-Allow-Origin",
+  //   "https://master--magenta-shortbread-105779.netlify.app/"
+  // );
+
+  next();
+});
 
 app.use(credentials);
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
-useTreblle(app, {
-  apiKey: process.env.TREBBLE_API_KEY,
-  projectId: process.env.TREBBLE_PROJECTID,
-});
+app.use(
+  treblle({
+    apiKey: process.env.TREBBLE_API_KEY,
+    projectId: process.env.TREBBLE_PROJECTID,
+    additionalFieldsToMask: [],
+  })
+);
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(helmet());
