@@ -18,7 +18,7 @@ const treblle = require("@treblle/express");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 
-app.enable('trust proxy');
+app.enable("trust proxy");
 app.use(
   session({
     secret: "egeGBTCTEcgwrtgc54cg66666666h.b/3/3.b/[g[er2",
@@ -60,10 +60,7 @@ app.use((req, res, next) => {
   res.setHeader("Content-Type", "application/json");
 
   // Access-Control-Allow-Origin
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "https://master--magenta-shortbread-105779.netlify.app/"
-  );
+  res.setHeader("Access-Control-Allow-Origin", "*");
 
   next();
 });
