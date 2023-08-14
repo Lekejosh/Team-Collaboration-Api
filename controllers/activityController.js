@@ -6,7 +6,7 @@ exports.getAllActivities = catchAsyncErrors(async (req, res, next) => {
   const { chatId } = req.query;
 
   if (!chatId) {
-    return next(new ErrorHandler("Chat Id not Provided", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const activity = await Activity.find({ chatId: chatId }).sort("-createdAt");
@@ -24,7 +24,7 @@ exports.getActivitiesByTask = catchAsyncErrors(async (req, res, next) => {
   const { taskId, chatId } = req.query;
 
   if (!chatId || !taskId) {
-    return next(new ErrorHandler("All required parameters not Provided", 400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
 
   const activity = await Activity.find({ chatId: chatId, taskId: taskId }).sort(

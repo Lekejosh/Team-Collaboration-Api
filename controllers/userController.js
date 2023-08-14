@@ -64,8 +64,6 @@ exports.register = catchAsyncErrors(async (req, res, next) => {
     avatar,
   });
 
-
-
   user.getAccessToken();
 
   sendToken(user, 200, res);
@@ -361,9 +359,16 @@ exports.forgotPassword = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.resetPassword = catchAsyncErrors(async (req, res, next) => {
+  const { token } = req.params;
+  const { newPassword, confirmPassword } = req.body;
+
+  if (!token || !newPassword || !confirmPassword) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
+
   const resetPasswordToken = crypto
     .createHash("sha256")
-    .update(req.params.token)
+    .update(token)
     .digest("hex");
 
   const user = await User.findOne({
@@ -372,10 +377,10 @@ exports.resetPassword = catchAsyncErrors(async (req, res, next) => {
   });
 
   if (!user) {
-    return next(new ErrorHandler("Reset Password Token is invalid", 401));
+    return next(new ErrorHandler("Reset Password Token is invalid", 403));
   }
 
-  if (req.body.newPassword !== req.body.confirmPassword) {
+  if (newPassword !== confirmPassword) {
     return next(new ErrorHandler("Password does not Match", 400));
   }
   const message = `Your password has been changed successfully`;
@@ -395,18 +400,23 @@ exports.resetPassword = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.updatePassword = catchAsyncErrors(async (req, res, next) => {
+  const { oldPassword, newPassword, confirmPassword } = req.body;
+  if (!oldPassword || !newPassword || !confirmPassword) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
+
   const user = await User.findById(req.user.id).select("+password");
-  const isPasswordMatched = await user.comparePassword(req.body.oldPassword);
+  const isPasswordMatched = await user.comparePassword(oldPassword);
 
   if (!isPasswordMatched) {
     return next(new ErrorHandler("Incorrect Old Password", 400));
   }
 
-  if (req.body.newPassword != req.body.confirmPassword) {
+  if (newPassword != confirmPassword) {
     return next(new ErrorHandler("Password does not match", 400));
   }
 
-  user.password = req.body.newPassword;
+  user.password = newPassword;
   await user.save();
 
   res
@@ -416,6 +426,10 @@ exports.updatePassword = catchAsyncErrors(async (req, res, next) => {
 
 exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
   let { username, status } = req.body;
+
+  if (!username || !status) {
+    return;
+  }
 
   if (username) {
     username = username.toLowerCase().trim();
@@ -442,6 +456,10 @@ exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
 
 exports.updateMobileNumber = catchAsyncErrors(async (req, res, next) => {
   const { mobileNumber } = req.body;
+
+  if (!mobileNumber) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
 
   const user = await User.findById(req.user._id);
 
@@ -470,6 +488,10 @@ exports.updateMobileNumber = catchAsyncErrors(async (req, res, next) => {
 exports.updateEmail = catchAsyncErrors(async (req, res, next) => {
   const { email } = req.body;
 
+  if (!email) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
+
   const user = await User.findById(req.user._id);
 
   const emailTaken = await User.findOne({
@@ -482,7 +504,7 @@ exports.updateEmail = catchAsyncErrors(async (req, res, next) => {
   }
 
   if (user.email == email) {
-    res.status(304).json({ message: "No Changes Made" });
+    res.status(304);
   }
 
   user.email = email;
@@ -669,6 +691,10 @@ exports.scanQr = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.searchUsers = catchAsyncErrors(async (req, res, next) => {
+  if (!req.query.search) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
+
   const keyword = req.query.search
     ? {
         $or: [
