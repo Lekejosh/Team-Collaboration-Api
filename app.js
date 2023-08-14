@@ -49,7 +49,7 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 app.use(limiter);
-app.setInterval(checkDue, 60 * 1000);
+setInterval(checkDue, 60 * 1000);
 
 const user = require("./routes/userRoute");
 const chat = require("./routes/chatRoute");
