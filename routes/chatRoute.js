@@ -31,7 +31,7 @@ router
   .put(isAuthenticatedUser, checkDeactivated, addToGroup);
 router
   .route("/group/remove")
-  .put(isAuthenticatedUser, checkDeactivated, removeFromGroup);
+  .delete(isAuthenticatedUser, checkDeactivated, removeFromGroup);
 
 
 

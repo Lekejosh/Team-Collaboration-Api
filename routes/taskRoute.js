@@ -96,7 +96,7 @@ router
   .put(isAuthenticatedUser, checkDeactivated, completeChecklist);
 router
   .route("/checklist/content/add/:checklistId/:cardId")
-  .put(isAuthenticatedUser, checkDeactivated, addChecklistContent);
+  .post(isAuthenticatedUser, checkDeactivated, addChecklistContent);
 router
   .route("/checklist/content/edit/:checklistId/:contentId/:cardId")
   .put(isAuthenticatedUser, checkDeactivated, editChecklistContent);
@@ -107,7 +107,7 @@ router
   .delete(isAuthenticatedUser, checkDeactivated, removeMemberFromContent);
 router
   .route("/checklist/content/complete/:checklistId/:contentId/:cardId")
-  .patch(isAuthenticatedUser, checkDeactivated, onComplete);
+  .put(isAuthenticatedUser, checkDeactivated, onComplete);
 router
   .route("/checklist/content/delete/:checklistId/:contentId/:cardId")
   .delete(isAuthenticatedUser, checkDeactivated, deleteChecklistContent);
