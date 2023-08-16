@@ -25,12 +25,9 @@ const mongoURL = isDocker
   ? `${process.env.DB_URI}/${process.env.DB_NAME}`
   : `${process.env.DB_URI_1}/${process.env.DB_NAME}`;
 
-
-mongoose
-  .connect(mongoURL)
-  .catch((err) => {
-    console.error(err);
-  });
+mongoose.connect(mongoURL).catch((err) => {
+  console.error(err);
+});
 
 const server = app.listen(process.env.PORT, () => {
   console.log(
@@ -46,11 +43,10 @@ const io = require("socket.io")(server, {
 });
 
 io.on("connection", (socket) => {
-  console.log(`${socket.id} Connected to Socket.io`);
+  console.log("Connected to Socket.io");
 
   socket.on("setup", (userData) => {
-    socket.join(userData);
-    console.log(userData);
+    socket.join(userData._id);
     socket.emit("connected");
   });
   socket.on("join chat", (room) => {
@@ -58,9 +54,7 @@ io.on("connection", (socket) => {
     console.log("User Joined Room" + room);
   });
 
-  socket.on("typing", (room) => {
-    socket.in(room).emit("typing");
-  });
+  socket.on("typing", (room) => socket.in(room).emit("typing"));
   socket.on("stop typing", (room) => socket.in(room).emit("stop typing"));
 
   socket.on("new message", (newMessageRecieved) => {
@@ -75,9 +69,22 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("new board", (newBoardDetails) => {
+    var chat = newBoardDetails;
+    socket.in(chat.group).emit('new board created')
+
+  });
+    socket.on("new task", (newTaskDetails) => {
+      var task = newTaskDetails;
+      socket.in(task.board).emit("new task created");
+    });
+     socket.on("new card", (newCardDetails) => {
+       var card = newCardDetails;
+       socket.in(card.taskId).emit("new card created");
+     });
 
   socket.on("disconnect", () => {
-    console.log(`${socket.id} disconnected`);
+    console.log("User Disconnected");
     socket.leaveAll();
   });
 });

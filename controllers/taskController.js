@@ -11,21 +11,19 @@ const Activity = require("../models/activityModel");
 const Message = require("../models/messageModel");
 exports.createBoard = catchAsyncErrors(async (req, res, next) => {
   const { groupId } = req.params;
-  const { title, background, users } = req.body;
+  const { title, background } = req.body;
 
-  if(!groupId || !title || !users){
-    return next(new ErrorHandler("Required parameters not Provided",400));
+  if (!groupId || !title) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
-
-  const formattedUsers = JSON.stringify(users);
-
-  const members = JSON.parse(formattedUsers);
-  members.push(req.user._id.toString());
-
-  const group = await Chat.findById(groupId).populate("users");
+  const members = [];
+  const group = await Chat.findById(groupId);
 
   if (!group) {
     return next(new ErrorHandler("Group not found", 404));
+  }
+  for (let i = 0; i < group.users.length; i++) {
+    members.push(group.users[i]);
   }
 
   if (!group.isGroupChat) {
@@ -34,6 +32,7 @@ exports.createBoard = catchAsyncErrors(async (req, res, next) => {
       type: "private",
       members: members,
       background,
+      group: groupId,
       createdBy: req.user._id,
     });
     await Activity.create({
@@ -290,7 +289,7 @@ exports.deleteBoard = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
 
   if (!id) {
-    return next(new ErrorHandler("Required parameters not Provided",400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
   const board = await Board.findById(id);
 
@@ -339,7 +338,7 @@ exports.createTask = catchAsyncErrors(async (req, res, next) => {
   const { groupId } = req.query;
 
   if (!boardId || !groupId) {
-    return next(new ErrorHandler("Required parameters not Provided",400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
   const { title } = req.body;
   const chat = await Chat.findById(groupId);
@@ -395,7 +394,7 @@ exports.getTasks = catchAsyncErrors(async (req, res, next) => {
   const { taskId } = req.params;
 
   if (!taskId) {
-    return next(new ErrorHandler("Required parameters not Provided",400));
+    return next(new ErrorHandler("Required parameters not Provided", 400));
   }
   const task = await Task.findById(taskId)
     .populate("cards")
@@ -515,6 +514,7 @@ exports.createCard = catchAsyncErrors(async (req, res, next) => {
   const card = await Card.create({
     title,
     createdBy: req.user._id,
+    taskId: taskId,
   });
 
   task.cards.push(card._id);
@@ -610,6 +610,56 @@ exports.getCard = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({ success: true, card });
 });
 
+exports.moveCard = catchAsyncErrors(async (req, res, next) => {
+  const { cardId, currentTaskId, newTaskId } = req.params;
+  const { groupId } = req.query;
+
+  if (!currentTaskId || !newTaskId || !cardId || !groupId) {
+    return next(new ErrorHandler("Required parameters not Provided", 400));
+  }
+
+  const currentTask = await Task.findById(currentTaskId);
+  if (!currentTask) {
+    return next(new ErrorHandler("Current Task not found", 404));
+  }
+
+  const newTask = await Task.findById(newTaskId);
+  if (!newTask) {
+    return next(new ErrorHandler("New Task not found", 404));
+  }
+
+  const card = await Card.findById(cardId);
+
+  if (!card) {
+    return next(new ErrorHandler("Card not found", 404));
+  }
+
+  currentTask.cards.pull(cardId);
+  await currentTask.save();
+
+  newTask.cards.push(cardId);
+  await newTask.save();
+
+  card.taskId = newTaskId;
+  await card.save();
+  await Activity.create({
+    chatId: groupId,
+    taskId: currentTaskId,
+    activites: {
+      description: `${req.user.username}, moved a task card to ${newTask.title}`,
+    },
+  });
+  await Activity.create({
+    chatId: groupId,
+    taskId: newTaskId,
+    activites: {
+      description: `${req.user.username}, moved in a task card from ${currentTask.title}`,
+    },
+  });
+
+  res.status(200).json({ success: true, task: [currentTask, newTask] });
+});
+
 exports.addMembersToCard = catchAsyncErrors(async (req, res, next) => {
   const { cardId, boardId } = req.params;
   const { groupId, taskId } = req.query;
@@ -664,7 +714,7 @@ exports.addMembersToCard = catchAsyncErrors(async (req, res, next) => {
   await card.save();
   for (let i = 0; i < selectedUsers.length; i++) {
     const user = await User.findById(selectedUsers[i]);
-  
+
     await sendEmail({
       email: `${user.username} <${user.email}>`,
       subject: "Assigned to Card",
@@ -983,7 +1033,6 @@ async function updateCardCompletionStatus(cardId) {
   await card.save();
 }
 
-
 exports.completeChecklist = catchAsyncErrors(async (req, res, next) => {
   const { checklistId, cardId } = req.params;
   const { completed, groupId, taskId } = req.query;
@@ -1041,14 +1090,12 @@ exports.completeChecklist = catchAsyncErrors(async (req, res, next) => {
     latestMessage: message,
   });
 
-  res
-    .status(200)
-    .json({
-      success: true,
-      message: `Checklist is marked as ${
-        completed === "true" ? "completed" : "incomplete"
-      }`,
-    });
+  res.status(200).json({
+    success: true,
+    message: `Checklist is marked as ${
+      completed === "true" ? "completed" : "incomplete"
+    }`,
+  });
 });
 
 exports.addChecklistContent = catchAsyncErrors(async (req, res, next) => {

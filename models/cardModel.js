@@ -9,6 +9,10 @@ const cardSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    taskId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Task",
+    },
     members: [
       {
         type: mongoose.Schema.Types.ObjectId,
