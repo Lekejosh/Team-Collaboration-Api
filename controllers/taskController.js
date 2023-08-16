@@ -396,9 +396,10 @@ exports.getTasks = catchAsyncErrors(async (req, res, next) => {
   if (!taskId) {
     return next(new ErrorHandler("Required parameters not Provided", 400));
   }
-  const task = await Task.findById(taskId)
-    .populate("cards")
-    .populate("members", "firstName lastName avatar username");
+  const task = await Task.findById(taskId).populate(
+    "members",
+    "firstName lastName avatar username"
+  );
 
   if (!task) {
     return next(new ErrorHandler("No Tasks Created", 404));
@@ -611,21 +612,81 @@ exports.getCard = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.moveCard = catchAsyncErrors(async (req, res, next) => {
-  const { cardId, currentTaskId, newTaskId } = req.params;
-  const { groupId } = req.query;
+  try {
+    const { cardId, currentTaskId, newTaskId, newPosition } = req.params;
+    const { groupId } = req.query;
 
-  if (!currentTaskId || !newTaskId || !cardId || !groupId) {
-    return next(new ErrorHandler("Required parameters not Provided", 400));
+    if (!currentTaskId || !newTaskId || !cardId || !groupId) {
+      return next(new ErrorHandler("Required parameters not provided", 400));
+    }
+
+    const currentTask = await Task.findById(currentTaskId);
+    if (!currentTask) {
+      return next(new ErrorHandler("Current Task not found", 404));
+    }
+
+    const newTask = await Task.findById(newTaskId);
+    if (!newTask) {
+      return next(new ErrorHandler("New Task not found", 404));
+    }
+
+    const card = await Card.findById(cardId);
+    if (!card) {
+      return next(new ErrorHandler("Card not found", 404));
+    }
+
+    currentTask.cards.pull(cardId);
+
+    const targetPosition = Math.min(newPosition, newTask.cards.length);
+
+    newTask.cards.splice(targetPosition, 0, cardId);
+
+    currentTask.cards.forEach((id, index) => {
+      const cardPosition = index < targetPosition ? index : index + 1;
+      Card.findByIdAndUpdate(id, { position: cardPosition }).exec();
+    });
+    newTask.cards.forEach((id, index) => {
+      Card.findByIdAndUpdate(id, { position: index }).exec();
+    });
+
+    await Promise.all([
+      currentTask.save(),
+      newTask.save(),
+      card.updateOne({ taskId: newTaskId, position: targetPosition }),
+    ]);
+
+    await Activity.create({
+      chatId: groupId,
+      taskId: currentTaskId,
+      activities: {
+        description: `${req.user.username} moved a task card to ${newTask.title}`,
+      },
+    });
+    await Activity.create({
+      chatId: groupId,
+      taskId: newTaskId,
+      activities: {
+        description: `${req.user.username} moved in a task card from ${currentTask.title}`,
+      },
+    });
+
+    res.status(200).json({ success: true, task: [currentTask, newTask] });
+  } catch (error) {
+    return next(new ErrorHandler("Error moving the card", 500));
+  }
+});
+
+exports.moveCardUpOrDownInATask = catchAsyncErrors(async (req, res, next) => {
+  const { newPosition, taskId, cardId } = req.params;
+
+  if (!newPosition || !taskId || !cardId) {
+    return next(new ErrorHandler("Required parameters not provided", 400));
   }
 
-  const currentTask = await Task.findById(currentTaskId);
-  if (!currentTask) {
-    return next(new ErrorHandler("Current Task not found", 404));
-  }
+  const task = await Task.findById(taskId);
 
-  const newTask = await Task.findById(newTaskId);
-  if (!newTask) {
-    return next(new ErrorHandler("New Task not found", 404));
+  if (!task) {
+    return next(new ErrorHandler("Task not found", 404));
   }
 
   const card = await Card.findById(cardId);
@@ -633,31 +694,27 @@ exports.moveCard = catchAsyncErrors(async (req, res, next) => {
   if (!card) {
     return next(new ErrorHandler("Card not found", 404));
   }
+  task.cards.pull(cardId);
 
-  currentTask.cards.pull(cardId);
-  await currentTask.save();
+  const targetPosition = Math.min(newPosition, task.cards.length);
 
-  newTask.cards.push(cardId);
-  await newTask.save();
+  task.cards.splice(targetPosition, 0, cardId);
 
-  card.taskId = newTaskId;
-  await card.save();
-  await Activity.create({
-    chatId: groupId,
-    taskId: currentTaskId,
-    activites: {
-      description: `${req.user.username}, moved a task card to ${newTask.title}`,
-    },
-  });
-  await Activity.create({
-    chatId: groupId,
-    taskId: newTaskId,
-    activites: {
-      description: `${req.user.username}, moved in a task card from ${currentTask.title}`,
-    },
+  task.cards.forEach((id, index) => {
+    const cardPosition = index < targetPosition ? index : index + 1;
+    Card.findByIdAndUpdate(id, { position: cardPosition }).exec();
   });
 
-  res.status(200).json({ success: true, task: [currentTask, newTask] });
+  task.cards.forEach((id, index) => {
+    Card.findByIdAndUpdate(id, { position: index }).exec();
+  });
+
+  await Promise.all([
+    task.save(),
+    card.updateOne({ position: targetPosition }),
+
+    res.status(200).json({ success: true, task }),
+  ]);
 });
 
 exports.addMembersToCard = catchAsyncErrors(async (req, res, next) => {

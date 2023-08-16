@@ -33,6 +33,7 @@ const {
   editChecklist,
   deleteChecklist,
   moveCard,
+  moveCardUpOrDownInATask,
 } = require("../controllers/taskController");
 
 router
@@ -78,8 +79,13 @@ router
   .route("/card/member/:cardId/:boardId")
   .put(isAuthenticatedUser, checkDeactivated, addMembersToCard);
 router
-  .route("/card/move-card/:cardId/from/:currentTaskId/to/:newTaskId")
+  .route(
+    "/card/move-card/:cardId/from/:currentTaskId/to/:newTaskId/positon/:newPosition"
+  )
   .put(isAuthenticatedUser, checkDeactivated, moveCard);
+router
+  .route("/card/move-position/:cardId/task/:taskId/position/:newPosition")
+  .put(isAuthenticatedUser, checkDeactivated, moveCardUpOrDownInATask);
 router
   .route("/card/member/remove/:cardId")
   .delete(isAuthenticatedUser, checkDeactivated, removeMemberFromCard);
